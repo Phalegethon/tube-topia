@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Watch multiple YouTube streams simultaneously",
 };
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export default function RootLayout({
   children,
@@ -20,6 +21,7 @@ export default function RootLayout({
           <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
         </StyledComponentsRegistry>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
