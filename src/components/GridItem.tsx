@@ -11,14 +11,10 @@ const StyledGridItem = styled.div`
   width: 100%;
   height: 100%;
   background-color: #282828; // Koyu arka plan
-  /* border: 1px solid ${({ theme }) => theme.colors.border}; */ // Kenarlık kaldırıldı (GridItemWrapper'da var)
-  /* border-radius: ${({ theme }) => theme.borderRadius}; */
-  /* box-shadow: 0 1px 3px ${({ theme }) => theme.colors.shadow}; */
   overflow: hidden;
   display: flex; // İçeriği (placeholder) ortalamak için
   align-items: center;
   justify-content: center;
-  /* position: relative; // Kaldırıldı */
 `;
 
 const PlaceholderWrapper = styled.div`
@@ -29,8 +25,6 @@ const PlaceholderWrapper = styled.div`
     color: #aaa;
     text-align: center;
     padding: 10px;
-    /* position: absolute; // Kaldırıldı */
-    /* inset: 0; */
 `;
 
 const PlaceholderIcon = styled(FaYoutube)`
@@ -100,7 +94,29 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
       }
   }, [contentId, cellId]); // cellId loglama için eklendi
 
-  // Eğer içerik atanmışsa ve kanal bilgisi bulunmuşsa oynatıcıyı hazırla
+    // Global ses durumu değişikliğini dinle (local state'i güncelleme kaldırıldı)
+    useEffect(() => {
+        if (playerRef.current && playerRef.current.mute && playerRef.current.unMute) {
+            if (isGloballyMuted) {
+                playerRef.current.mute();
+            } else {
+                playerRef.current.unMute();
+            }
+        }
+    }, [isGloballyMuted, contentId]);
+
+    // Oynatma durumu değişikliğini dinle
+    useEffect(() => {
+        if (playerRef.current && playerRef.current.playVideo && playerRef.current.pauseVideo) {
+            if (isPlayingGlobally) {
+                playerRef.current.playVideo();
+            } else {
+                playerRef.current.pauseVideo();
+            }
+        }
+    }, [isPlayingGlobally, contentId]);
+
+    // Eğer içerik atanmışsa ve kanal bilgisi bulunmuşsa oynatıcıyı hazırla
   if (contentId && channel) {
     switch (channel.type) {
       case 'video':
@@ -183,27 +199,7 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
       setPlayerError(errorMessage); // Hata state'ini ayarla
   }
 
-  // Global ses durumu değişikliğini dinle (local state'i güncelleme kaldırıldı)
-  useEffect(() => {
-      if (playerRef.current && playerRef.current.mute && playerRef.current.unMute) {
-          if (isGloballyMuted) {
-              playerRef.current.mute();
-          } else {
-              playerRef.current.unMute();
-          }
-      }
-  }, [isGloballyMuted, contentId]);
 
-  // Oynatma durumu değişikliğini dinle
-  useEffect(() => {
-      if (playerRef.current && playerRef.current.playVideo && playerRef.current.pauseVideo) {
-          if (isPlayingGlobally) {
-              playerRef.current.playVideo();
-          } else {
-              playerRef.current.pauseVideo();
-          }
-      }
-  }, [isPlayingGlobally, contentId]); 
 
   // Render logic
   const renderContent = () => {

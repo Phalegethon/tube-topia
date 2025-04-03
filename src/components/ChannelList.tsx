@@ -2,18 +2,13 @@
 
 import React from 'react';
 import styled, { DefaultTheme } from 'styled-components';
-import useChannelStore, { Channel } from '@/store/channelStore';
+import useChannelStore from '@/store/channelStore';
 import useGridStore from '@/store/gridStore';
 import { FaPlayCircle, FaTimes, FaTv } from 'react-icons/fa';
 
 const ListWrapper = styled.div`
-  /* width: 250px; */ // Genişlik SidebarWrapper tarafından yönetiliyor
-  /* height: calc(100vh - 60px - 53px); */ // Yükseklik Section tarafından yönetiliyor
-  /* overflow-y: auto; */ // Scroll Section tarafından yönetiliyor
-  /* border-right: 1px solid ${({ theme }) => theme.colors.border}; */
   display: flex;
   flex-direction: column;
-  /* flex-shrink: 0; */ // SidebarWrapper zaten flex-shrink: 0
 `;
 
 const ListItem = styled.div<{ $isPlaying?: boolean }>` 

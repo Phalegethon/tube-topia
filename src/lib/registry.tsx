@@ -15,7 +15,6 @@ export default function StyledComponentsRegistry({
 
   useServerInsertedHTML(() => {
     const styles = styledComponentsStyleSheet.getStyleElement();
-    // @ts-ignore - Typing issue with experimental useServerInsertedHTML
     styledComponentsStyleSheet.instance.clearTag();
     return <>{styles}</>;
   });

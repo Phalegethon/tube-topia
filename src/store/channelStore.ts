@@ -78,7 +78,7 @@ const fetchContentName = async (id: string, type: ChannelType): Promise<string |
   }
 
   let endpoint = '';
-  let params: any = { key: API_KEY, part: 'snippet', id };
+  const params: Record<string, string> = { key: API_KEY, part: 'snippet', id };
 
   switch (type) {
     case 'video':

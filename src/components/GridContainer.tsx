@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import styled, { css } from 'styled-components';
 import useGridStore from '@/store/gridStore';
-import useChannelStore, { Channel } from '@/store/channelStore';
+import useChannelStore from '@/store/channelStore';
 import GridItem from './GridItem';
 import { FaTimes, FaCommentAlt } from 'react-icons/fa';
 import 'react-grid-layout/css/styles.css';
@@ -46,12 +46,6 @@ const GridItemWrapper = styled.div<{ $isDragging?: boolean }>`
   &:not(:has(*[draggable="true"][aria-grabbed="true"])) { // React-grid-layout tarafından eklenen attribute
       cursor: grab;
   }
-`;
-
-const EmptyCellPlaceholder = styled.div`
-    color: #888;
-    font-size: 0.9rem;
-    text-align: center;
 `;
 
 // Genel buton stili
@@ -104,7 +98,6 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
     layout,
     setLayout,
     gridCols,
-    setCellContent,
     cellContents,
     clearCellContent,
     setActiveGridItemId,
@@ -141,7 +134,7 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
   };
 
   // Sürükleme bittiğinde
-  const onDragStop = (layout: Layout[], oldItem: Layout, newItem: Layout) => {
+  const onDragStop = () => {
     setDraggingItemId(null);
     // Layout değişikliğini handleLayoutChange zaten yapıyor.
   };

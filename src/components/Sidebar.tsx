@@ -5,7 +5,6 @@ import styled from 'styled-components';
 import ChannelList from './ChannelList';
 import ChannelForm from './ChannelForm';
 import useUIStore from '@/store/uiStore'; // Yeni store'u import et
-import theme from '@/styles/theme'; // Temayı import et
 
 const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
   width: 250px;
