@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "YouTube Multi-Watcher",
   description: "Watch multiple YouTube streams simultaneously",
 };
+import { Analytics } from "@vercel/analytics/react"
 
 export default function RootLayout({
   children,
@@ -18,6 +19,7 @@ export default function RootLayout({
         <StyledComponentsRegistry>
           <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
         </StyledComponentsRegistry>
+        <Analytics />
       </body>
     </html>
   );
