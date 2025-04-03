@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import useGridStore from '@/store/gridStore';
 import useChannelStore, { Channel } from '@/store/channelStore';
 import GridItem from './GridItem';
@@ -25,7 +25,7 @@ const GridContainerWrapper = styled.div`
   background-color: #000; // Grid arka planı
 `;
 
-const GridItemWrapper = styled.div`
+const GridItemWrapper = styled.div<{ $isDragging?: boolean }>`
   background-color: #111;
   display: flex;
   justify-content: center;
@@ -33,6 +33,19 @@ const GridItemWrapper = styled.div`
   overflow: hidden; /* Önemli: İçeriğin taşmasını engeller */
   position: relative; /* Butonları konumlandırmak için */
   border: 1px solid #333; // Hücre kenarlığı
+  transition: opacity 0.2s ease-in-out; // Opaklık geçişi
+  ${({ $isDragging }) => 
+      $isDragging && 
+      css`
+        opacity: 0.7; // Sürüklenirken opaklığı azalt
+        z-index: 1000; // Diğer elemanların üzerinde kalmasını sağla
+        cursor: grabbing;
+      `
+  }
+  /* Normal cursor */
+  &:not(:has(*[draggable="true"][aria-grabbed="true"])) { // React-grid-layout tarafından eklenen attribute
+      cursor: grab;
+  }
 `;
 
 const EmptyCellPlaceholder = styled.div`
@@ -101,6 +114,8 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
+  // Sürüklenen öğenin ID'sini tutmak için state
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -120,6 +135,17 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
     setLayout(newLayout);
   };
 
+  // Sürükleme başladığında
+  const onDragStart = (layout: Layout[], oldItem: Layout, newItem: Layout) => {
+    setDraggingItemId(newItem.i);
+  };
+
+  // Sürükleme bittiğinde
+  const onDragStop = (layout: Layout[], oldItem: Layout, newItem: Layout) => {
+    setDraggingItemId(null);
+    // Layout değişikliğini handleLayoutChange zaten yapıyor.
+  };
+
   const rowsCount = layout.length > 0 ? Math.max(...layout.map(l => l.y + l.h)) : 1;
   const gridMargin: [number, number] = isFullscreenActive ? [2, 2] : [10, 10];
   const rowHeight = containerHeight > 0 && rowsCount > 0 ? Math.max(1, Math.floor((containerHeight - (rowsCount + 1) * gridMargin[1]) / rowsCount)) : 100; // Sıfıra bölme hatasını engelle
@@ -137,6 +163,9 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
           margin={gridMargin}
           onLayoutChange={handleLayoutChange}
           draggableCancel=".grid-item-remove-button, .grid-item-chat-button"
+          // Sürükleme olaylarını ekle
+          onDragStart={onDragStart}
+          onDragStop={onDragStop}
         >
           {layout.map((item) => {
             const contentId = cellContents[item.i] || null; // null olabileceğinden emin ol
@@ -144,9 +173,10 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
             // const channel = getChannelById(contentId);
             // Kanal bilgisini butonlar için alalım
             const channelForButtons = contentId ? channels.find(c => c.id === contentId) : null;
+            const isDragging = item.i === draggingItemId;
 
             return (
-              <GridItemWrapper key={item.i}>
+              <GridItemWrapper key={item.i} $isDragging={isDragging}>
                 {/* GridItem'a cellId ve contentId prop'larını geçir */}
                 <GridItem cellId={item.i} contentId={contentId} />
                 {/* Butonlar için channelForButtons kullan */}

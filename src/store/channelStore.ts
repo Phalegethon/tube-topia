@@ -15,7 +15,7 @@ export interface Channel {
 
 interface ChannelState {
   channels: Channel[];
-  addChannel: (channel: Omit<Channel, 'id'>) => void;
+  addChannel: (channel: Omit<Channel, 'id'>) => Promise<boolean>;
   removeChannel: (id: string) => void;
   updateChannel: (id: string, updatedChannel: Partial<Omit<Channel, 'id'>>) => void;
 }
@@ -121,43 +121,39 @@ const useChannelStore = create<ChannelState>()(
   persist(
     (set, get) => ({ // get eklendi
       channels: [],
-      // addChannel fonksiyonu async yapıldı
-      addChannel: async (newChannelData) => {
+      // addChannel fonksiyonu async ve boolean döndürecek
+      addChannel: async (newChannelData): Promise<boolean> => {
          const extracted = extractIdAndType(newChannelData.url);
          if (!extracted) {
+             // Konsol log yerine alert göster
+             alert(`Invalid YouTube URL or ID format: ${newChannelData.url}`);
              console.error("Could not extract ID or type from URL:", newChannelData.url);
-             return;
+             return false; // Başarısız olduğunu belirt
          }
 
-         // Mevcut kanalı kontrol et
          if (get().channels.some(channel => channel.id === extracted.id)) {
+            // Uyarıyı alert ile göster
+            alert(`Channel with ID ${extracted.id} already exists.`);
             console.warn(`Channel with ID ${extracted.id} already exists.`);
-            return; // Varsa ekleme
+            return false; // Başarısız (zaten var)
          }
 
-         // İsim girilmediyse veya extract'ten gelen isim yoksa API'den almayı dene
          let channelName = newChannelData.name || extracted.name;
-         if (!channelName && API_KEY) { // Sadece API anahtarı varsa dene
-             console.log(`Fetching name for ${extracted.type} ID: ${extracted.id}`);
+         if (!channelName && API_KEY) {
              const fetchedName = await fetchContentName(extracted.id, extracted.type);
-             if (fetchedName) {
-                 channelName = fetchedName;
-             }
+             if (fetchedName) { channelName = fetchedName; }
          }
-
-         // İsim hala yoksa, ID'yi kullan
-         if (!channelName) {
-            channelName = extracted.id;
-         }
+         if (!channelName) { channelName = extracted.id; }
 
          const newChannel: Channel = {
              id: extracted.id,
              url: newChannelData.url,
-             name: channelName, // name artık string | undefined olabilir, sorun yok.
+             name: channelName,
              type: newChannelData.type || extracted.type,
          };
 
          set({ channels: [...get().channels, newChannel] });
+         return true; // Başarılı
       },
       removeChannel: (id) => {
         // Önce grid store'dan bu contentId'yi temizle

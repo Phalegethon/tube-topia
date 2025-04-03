@@ -73,15 +73,23 @@ const ChannelForm = () => {
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [type, setType] = useState<ChannelType>('video');
+  const [isAdding, setIsAdding] = useState(false); // Ekleme işlemi durumu
   const addChannel = useChannelStore((state) => state.addChannel);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
-    addChannel({ url, name: name || undefined, type });
-    setUrl('');
-    setName('');
-    setType('video');
+    if (!url.trim() || isAdding) return;
+
+    setIsAdding(true); // Ekleme başladı
+    const success = await addChannel({ url, name: name || undefined, type });
+    setIsAdding(false); // Ekleme bitti
+
+    // Sadece başarılıysa inputları temizle
+    if (success) {
+        setUrl('');
+        setName('');
+        setType('video');
+    }
   };
 
   return (
@@ -92,19 +100,28 @@ const ChannelForm = () => {
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         required
+        disabled={isAdding} // Ekleme sırasında pasif yap
       />
       <Input
         type="text"
         placeholder="Name (Optional)"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        disabled={isAdding}
       />
-      <Select value={type} onChange={(e) => setType(e.target.value as ChannelType)}>
+      <Select 
+        value={type} 
+        onChange={(e) => setType(e.target.value as ChannelType)} 
+        disabled={isAdding}
+       >
         <option value="video">Video</option>
         <option value="live">Live Stream</option>
         {/* <option value="playlist">Playlist</option> */}
       </Select>
-      <Button type="submit">Add</Button>
+      {/* Buton metnini ve durumunu ayarla */}
+      <Button type="submit" disabled={isAdding || !url.trim()}>
+        {isAdding ? 'Adding...' : 'Add'}
+      </Button>
     </FormWrapper>
   );
 };
