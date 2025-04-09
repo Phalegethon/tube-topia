@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import ChannelList from './ChannelList';
 import ChannelForm from './ChannelForm';
 import useUIStore from '@/store/uiStore'; // Yeni store'u import et
-import { FaLinkedin } from 'react-icons/fa'; // LinkedIn ikonu eklendi
+import { FaLinkedin, FaUndo } from 'react-icons/fa'; // LinkedIn ve FaUndo ikonları eklendi
 
 const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
   width: 250px;
@@ -63,10 +63,45 @@ const FooterSection = styled.div`
     margin-top: auto; // Üstteki elemanları iterek en alta yerleşir
     padding: ${({ theme }) => theme.spacing.small} ${({ theme }) => theme.spacing.medium};
     border-top: 1px solid #374151; // Üst sınır çizgisi
+    flex-shrink: 0; // Footer'ın küçülmesini engelle
+`;
+
+// Reset butonu için container
+const ResetContainer = styled.div`
+    padding-bottom: ${({ theme }) => theme.spacing.small};
+    margin-bottom: ${({ theme }) => theme.spacing.small};
+    border-bottom: 1px dashed #4B5563; // Ayırıcı çizgi
+    display: flex;
+    justify-content: center;
+`;
+
+const ResetButton = styled.button`
+    background-color: #4B5563; // Koyu gri buton
+    color: #D1D5DB;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing.small};
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    &:hover {
+        background-color: #6B7280;
+        color: #F3F4F6;
+    }
+
+    &:active {
+        background-color: #4B5563;
+    }
+`;
+
+const CopyrightContainer = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; // Küçülmesini engelle
 `;
 
 const CopyrightText = styled.p`
@@ -91,6 +126,13 @@ const LinkedInLink = styled.a`
 const Sidebar = () => {
   const { isChannelListVisible } = useUIStore(); // State'i al
 
+  const handleResetSettings = () => {
+      if (window.confirm("Are you sure you want to reset all settings? This will remove all saved channels and reset the layout.")) {
+          localStorage.clear(); // Tüm local storage'ı temizle
+          window.location.reload(); // Sayfayı yeniden yükleyerek store'ların sıfırlanmasını sağla
+      }
+  };
+
   return (
     <SidebarWrapper $isVisible={isChannelListVisible}> { /* State'i prop olarak geçir */ }
       <Section>
@@ -101,13 +143,21 @@ const Sidebar = () => {
         <h3>Saved Channels</h3>
         <ChannelList />
       </Section>
-      {/* Footer eklendi */}
       <FooterSection>
-          <LinkedInLink href="https://www.linkedin.com/in/sgsuerdem/" target="_blank" rel="noopener noreferrer" title="LinkedIn Profili">
-              <FaLinkedin />
-          </LinkedInLink>
-          <CopyrightText>S. Gürkan Süerdem</CopyrightText>
-          <CopyrightText>2025<sup>©</sup></CopyrightText>
+          {/* Reset Butonu Alanı */} 
+          <ResetContainer>
+              <ResetButton onClick={handleResetSettings}>
+                  <FaUndo />
+                  Reset All Settings
+              </ResetButton>
+          </ResetContainer>
+          {/* Copyright Alanı */} 
+          <CopyrightContainer>
+              <CopyrightText>© S. Gürkan Süerdem 2025</CopyrightText>
+              <LinkedInLink href="https://www.linkedin.com/in/sgsuerdem/" target="_blank" rel="noopener noreferrer" title="LinkedIn Profili">
+                  <FaLinkedin />
+              </LinkedInLink>
+          </CopyrightContainer>
       </FooterSection>
     </SidebarWrapper>
   );

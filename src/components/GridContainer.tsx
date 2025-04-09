@@ -17,12 +17,92 @@ interface GridContainerProps {
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-const GridContainerWrapper = styled.div`
+const GridContainerWrapper = styled.div<{ 
+    $isDraggingActive?: boolean;
+    $gridCols?: number;
+    $rowHeight?: number;
+    $margin?: [number, number];
+}>`
   flex-grow: 1;
   height: 100%;
   overflow: hidden; /* İçerik taşmasını engelle */
   position: relative;
   background-color: #000; // Grid arka planı
+  transition: background-color 0.3s ease; // Geçiş eklendi
+
+  /* react-grid-layout için global stil ayarlamaları */
+  .react-grid-layout {
+    position: relative;
+    transition: height 200ms ease;
+  }
+  .react-grid-item {
+    transition: all 200ms ease;
+    transition-property: left, top;
+    box-sizing: border-box;
+  }
+  .react-grid-item.cssTransforms {
+    transition-property: transform;
+  }
+  .react-grid-item.resizing {
+    z-index: 10; // Yeniden boyutlandırma sırasında üstte kalsın
+    will-change: width, height;
+  }
+  .react-grid-item.react-draggable-dragging {
+    transition: none;
+    z-index: 1001; // Sürüklenirken en üstte (Overlay'den de üstte)
+    will-change: transform;
+  }
+  .react-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    bottom: 0;
+    right: 0;
+    background: none; // Varsayılan görseli kaldır
+    padding: 0;
+    cursor: nwse-resize;
+    z-index: 6; // DragOverlay'in (z-index: 5) üzerinde olmalı
+    /* Görsel iyileştirme: Köşeye küçük bir üçgen veya ikon eklenebilir */
+    &::after {
+        content: '';
+        position: absolute;
+        right: 3px;
+        bottom: 3px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 0 8px 8px;
+        border-color: transparent transparent rgba(255, 255, 255, 0.3) transparent;
+        transition: border-color 0.2s ease;
+    }
+    &:hover::after {
+         border-color: transparent transparent rgba(255, 255, 255, 0.7) transparent;
+    }
+  }
+
+  /* Sürükleme aktifken grid yapısını göster */
+  ${({ $isDraggingActive, $gridCols = 12, $rowHeight = 100, $margin = [10, 10] }) => 
+      $isDraggingActive && $gridCols && $rowHeight && css`
+        background-color: #111; // Biraz daha açık bir arka plan
+        background-image: 
+          repeating-linear-gradient(
+            to right,
+            transparent,
+            transparent calc((100% - ${($gridCols + 1) * $margin[0]}px) / ${$gridCols}), 
+            #444 calc((100% - ${($gridCols + 1) * $margin[0]}px) / ${$gridCols}), 
+            #444 calc((100% - ${($gridCols + 1) * $margin[0]}px) / ${$gridCols} + 1px)
+          ),
+          repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent ${$rowHeight}px, 
+            #444 ${$rowHeight}px, 
+            #444 ${$rowHeight + 1}px
+          );
+         background-position: ${$margin[0]}px ${$margin[1]}px; // Margin kadar offset
+         /* background-size hesaplaması kaldırıldı, repeating-linear-gradient ile yapılıyor */
+      `
+  }
 `;
 
 const GridItemWrapper = styled.div<{ $isDragging?: boolean }>`
@@ -37,9 +117,7 @@ const GridItemWrapper = styled.div<{ $isDragging?: boolean }>`
   ${({ $isDragging }) => 
       $isDragging && 
       css`
-        opacity: 0.7; // Sürüklenirken opaklığı azalt
-        z-index: 1000; // Diğer elemanların üzerinde kalmasını sağla
-        cursor: grabbing;
+        // dragging class'ı artık GridContainerWrapper içinde tanımlandı
       `
   }
   /* Normal cursor */
@@ -144,7 +222,13 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
   const rowHeight = containerHeight > 0 && rowsCount > 0 ? Math.max(1, Math.floor((containerHeight - (rowsCount + 1) * gridMargin[1]) / rowsCount)) : 100; // Sıfıra bölme hatasını engelle
 
   return (
-    <GridContainerWrapper ref={containerRef}>
+    <GridContainerWrapper 
+        ref={containerRef} 
+        $isDraggingActive={draggingItemId !== null}
+        $gridCols={gridCols}
+        $rowHeight={rowHeight}
+        $margin={gridMargin}
+    >
       {containerHeight > 0 && (
         <ResponsiveGridLayout
           className="layout"
@@ -152,13 +236,15 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: gridCols, md: gridCols, sm: gridCols, xs: gridCols, xxs: gridCols }}
           rowHeight={rowHeight}
-          isBounded={true}
+          isBounded={false}
           margin={gridMargin}
           onLayoutChange={handleLayoutChange}
           draggableCancel=".grid-item-remove-button, .grid-item-chat-button"
           // Sürükleme olaylarını ekle
           onDragStart={onDragStart}
           onDragStop={onDragStop}
+          compactType={null}
+          preventCollision={true}
         >
           {layout.map((item) => {
             const contentId = cellContents[item.i] || null; // null olabileceğinden emin ol

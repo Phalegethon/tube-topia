@@ -81,6 +81,28 @@ const RemoveButton = styled.button`
     }
 `;
 
+// Sürükleme için overlay
+const DragOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0); // Şeffaf
+    z-index: 5; // Butonların altında, videonun üstünde
+    cursor: grab;
+    pointer-events: none; // Normalde tıklanamaz
+
+    // GridItemWrapper sürüklenebilir durumda olduğunda (parent hover veya sürükleme class'ı)
+    // Not: parent hover daha basit bir yaklaşımdır. react-grid-layout class'ları daha spesifik olabilir.
+    .react-draggable:hover &,
+    .react-grid-item:hover & { // react-grid-layout tarafından eklenen parent class'ları hedefle
+         pointer-events: auto; // Tıklanabilir hale getir
+         // İsteğe bağlı: Hafif bir arka plan eklenebilir
+         // background-color: rgba(255, 255, 255, 0.05);
+    }
+`;
+
 interface GridItemProps {
   cellId: string;
   contentId: string | null;
@@ -227,14 +249,17 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
       if (shouldRenderPlayer) {
           console.log(`[LOG] Rendering YouTube component for cell: ${cellId}, videoId: ${videoId}, opts:`, opts);
           return (
-              <YouTube 
-                  key={contentId} 
-                  videoId={videoId}
-                  opts={opts} 
-                  onReady={onPlayerReady} 
-                  onError={onPlayerError}
-                  style={{ width: '100%', height: '100%' }}
-              />
+              <>
+                  <DragOverlay />
+                  <YouTube 
+                      key={contentId} 
+                      videoId={videoId}
+                      opts={opts} 
+                      onReady={onPlayerReady} 
+                      onError={onPlayerError}
+                      style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
+                  />
+              </>
           );
       }
       console.log(`[LOG] Rendering Placeholder for cell: ${cellId}`);
@@ -251,8 +276,8 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
 
   return (
     <StyledGridItem title={`Cell: ${cellId} - ${playerError ? `Error: ${playerError}` : `Content: ${channel?.name || contentId || 'Empty'}`}`}>
-      {renderContent()}
-      {contentId && !playerError && (
+        {renderContent()}
+        {contentId && !playerError && (
            <RemoveButton 
                 onClick={(e) => {
                     e.stopPropagation(); 
@@ -263,7 +288,7 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
             >
               <FaTimes />
            </RemoveButton>
-      )}
+        )}
     </StyledGridItem>
   );
 };
