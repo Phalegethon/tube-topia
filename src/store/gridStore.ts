@@ -161,11 +161,8 @@ const useGridStore = create<GridState>()(
             }
             const newCellId = `cell-${nextIdIndex}`;
 
-            // Yeni hücrenin pozisyonunu bul (ilk boş slotu bulmaya çalış)
-            // Bu kısım basitleştirilmiştir: Şimdilik layout'un sonuna ekler gibi davranalım
-            // Daha karmaşık bir boşluk bulma algoritması eklenebilir.
+            // Yeni hücrenin pozisyonunu bul
             const cols = gridCols;
-            const rowHeight = 30; // react-grid-layout varsayılanı veya ayarlanan değer
             const itemW = Math.round(cols / Math.ceil(config.cells / config.rows)); 
             const itemH = 1;
             // Basit yaklaşım: Mevcut layout'un son item'ının altına ekle

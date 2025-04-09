@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { ThemeProvider, css } from 'styled-components';
-import theme from '@/styles/theme';
 import GlobalStyles from '@/styles/GlobalStyles';
 import Sidebar from '@/components/Sidebar';
 import GridContainer from '@/components/GridContainer';
@@ -16,6 +15,7 @@ import {
     FaVolumeUp, FaVolumeMute,
     FaThLarge, FaPlay, FaPause, FaPlus
 } from 'react-icons/fa';
+import theme from '@/styles/theme';
 
 // Styled components definitions
 const AppWrapper = styled.div`
@@ -153,12 +153,18 @@ export default function Home() {
     const { toggleChannelListVisibility } = useUIStore();
     const [isFullscreenActive, setIsFullscreenActive] = useState(false);
     const { isGloballyMuted, toggleGlobalMute, isPlayingGlobally, toggleGlobalPlayPause } = usePlayerStore();
-    const { gridCols, setGridCols, generateLayout, layout, addEmptyCell } = useGridStore();
+    const {
+        gridCols,
+        setGridCols,
+        generateLayout,
+        layout,
+        addEmptyCell
+    } = useGridStore();
     const { initializeDefaultChannels } = useChannelStore();
 
     const canAddMoreCells = useMemo(() => {
         const config = gridLayoutConfig[gridCols];
-        return config ? layout.length < config.cells : false;
+        return config && layout ? layout.length < config.cells : false;
     }, [gridCols, layout]);
 
     useEffect(() => {
@@ -170,7 +176,7 @@ export default function Home() {
             generateLayout(hydratedState.gridCols);
         }
         initializeDefaultChannels();
-    }, [generateLayout]);
+    }, [generateLayout, initializeDefaultChannels]);
 
     const toggleBrowserFullScreen = useCallback(() => {
         if (!document.fullscreenElement) {
@@ -220,7 +226,7 @@ export default function Home() {
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGridCols(parseInt(e.target.value, 10))}
                             title="Select Grid Layout"
                         >
-                            {Object.entries(gridLayoutConfig).map(([colsKey, config]) => (
+                            {Object.entries(gridLayoutConfig).map(([colsKey]) => (
                                 <option key={colsKey} value={colsKey}>
                                     {getLayoutName(parseInt(colsKey))} ({colsKey} cols)
                                 </option>
