@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import axios from 'axios'; // axios import edildi
 import useGridStore from '@/store/gridStore'; // gridStore import edildi
+import useApiKeyStore from '@/store/apiKeyStore'; // ApiKeyStore import edildi
 
 // Kanal tiplerini tanımla
 export type ChannelType = 'channel' | 'playlist' | 'live' | 'video';
@@ -67,19 +68,20 @@ const extractIdAndType = (url: string): { id: string; type: ChannelType; name?: 
   return null;
 };
 
-// YouTube API Anahtarı (Environment Variable'dan alınacak)
-const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+// YouTube API Anahtarı tanımı kaldırıldı
+// const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
-// YouTube API'sinden isim getirme fonksiyonu
+// YouTube API'sinden isim getirme fonksiyonu güncellendi
 const fetchContentName = async (id: string, type: ChannelType): Promise<string | null> => {
-  if (!API_KEY) {
-    console.warn('YouTube API Key (NEXT_PUBLIC_YOUTUBE_API_KEY) is not set. Cannot fetch names automatically.');
+  const apiKey = useApiKeyStore.getState().apiKey; // Anahtarı store'dan al
+  if (!apiKey) { // Store'daki anahtarı kontrol et
+    console.warn('YouTube API Key is not set. Cannot fetch names automatically.');
     return null;
   }
 
   let endpoint = '';
-  const params: Record<string, string> = { key: API_KEY, part: 'snippet', id };
+  const params: Record<string, string> = { key: apiKey, part: 'snippet', id }; // apiKey kullanıldı
 
   switch (type) {
     case 'video':
@@ -137,7 +139,7 @@ const useChannelStore = create<ChannelState>()(
          }
 
          let channelName = newChannelData.name || extracted.name;
-         if (!channelName && API_KEY) {
+         if (!channelName && useApiKeyStore.getState().apiKey) {
              const fetchedName = await fetchContentName(extracted.id, extracted.type);
              if (fetchedName) { channelName = fetchedName; }
          }

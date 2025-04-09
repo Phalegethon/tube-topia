@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import ChannelList from './ChannelList';
 import ChannelForm from './ChannelForm';
-import useUIStore from '@/store/uiStore'; // Yeni store'u import et
-import { FaLinkedin, FaUndo, FaTimes } from 'react-icons/fa'; // LinkedIn ve FaUndo ikonları eklendi
+import useUIStore from '@/store/uiStore';
+import { FaLinkedin, FaTimes } from 'react-icons/fa';
 
 const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
   width: 250px;
@@ -176,18 +176,15 @@ const ChannelListWrapper = styled.div`
 `;
 
 const Sidebar = () => {
-  const { isChannelListVisible } = useUIStore(); // State'i al
-  const [searchTerm, setSearchTerm] = useState(''); // Arama state'i
+  const { isChannelListVisible } = useUIStore();
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
 
-  const handleResetSettings = () => {
-      if (window.confirm("Are you sure you want to reset all settings? This will remove all saved channels and reset the layout.")) {
-          localStorage.clear(); // Tüm local storage'ı temizle
-          window.location.reload(); // Sayfayı yeniden yükleyerek store'ların sıfırlanmasını sağla
-      }
-  };
+  const handleLocalSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLocalSearchTerm(e.target.value);
+  }
 
   return (
-    <SidebarWrapper $isVisible={isChannelListVisible}> { /* State'i prop olarak geçir */ }
+    <SidebarWrapper $isVisible={isChannelListVisible}>
       <Section>
         <h3>Add Channel</h3>
         <ChannelForm />
@@ -197,29 +194,22 @@ const Sidebar = () => {
         <SearchContainer>
           <SearchInput 
             type="text" 
-            placeholder="Search channels..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search saved channels..."
+            value={localSearchTerm}
+            onChange={handleLocalSearchChange}
           />
-          {searchTerm && (
-            <ClearSearchButton onClick={() => setSearchTerm('')} title="Clear search">
+          {localSearchTerm && (
+            <ClearSearchButton onClick={() => setLocalSearchTerm('')} title="Clear search">
               <FaTimes />
             </ClearSearchButton>
           )}
         </SearchContainer>
+        
         <ChannelListWrapper>
-          <ChannelList searchTerm={searchTerm} />
+          <ChannelList searchTerm={localSearchTerm} />
         </ChannelListWrapper>
       </Section>
       <FooterSection>
-          {/* Reset Butonu Alanı */} 
-          <ResetContainer>
-              <ResetButton onClick={handleResetSettings}>
-                  <FaUndo />
-                  Reset All Settings
-              </ResetButton>
-          </ResetContainer>
-          {/* Copyright Alanı */} 
           <CopyrightContainer>
               <CopyrightText>© S. Gürkan Süerdem 2025</CopyrightText>
               <LinkedInLink href="https://www.linkedin.com/in/sgsuerdem/" target="_blank" rel="noopener noreferrer" title="LinkedIn Profili">

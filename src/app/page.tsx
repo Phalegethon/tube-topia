@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import styled, { ThemeProvider, css } from 'styled-components';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import styled, { ThemeProvider, css, keyframes } from 'styled-components';
 import GlobalStyles from '@/styles/GlobalStyles';
 import Sidebar from '@/components/Sidebar';
 import GridContainer from '@/components/GridContainer';
@@ -10,12 +10,15 @@ import useUIStore from '@/store/uiStore';
 import useGridStore, { gridLayoutConfig } from '@/store/gridStore';
 import usePlayerStore from '@/store/playerStore';
 import useChannelStore from '@/store/channelStore';
+import useSearchStore from '@/store/searchStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
-    FaThLarge, FaPlay, FaPause, FaPlus, FaSyncAlt
+    FaThLarge, FaPlay, FaPause, FaPlus, FaSyncAlt, FaSearch, FaCog, FaTimes
 } from 'react-icons/fa';
 import theme from '@/styles/theme';
+import SettingsModal from '@/components/SettingsModal';
+import YoutubeSearchResultsDropdown from '@/components/YoutubeSearchResultsDropdown';
 
 // Styled components definitions
 const AppWrapper = styled.div`
@@ -147,132 +150,342 @@ const ResetLayoutButton = styled(ControlButton)`
     // Özel stil gerekirse buraya eklenebilir
 `;
 
+const YoutubeSearchWrapper = styled.div`
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 ${ ({ theme }) => theme.spacing.large || '24px' };
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+`;
+
+const YoutubeSearchInputContainer = styled.div`
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid #4B5563;
+    background-color: #121212;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus-within {
+      border-color: ${({ theme }) => theme.colors.primary || '#6366f1'};
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+`;
+
+// Keyframes for the loading animation
+const loadingAnimation = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+// Styled component for the loading indicator
+const SearchLoadingIndicator = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, rgba(55, 65, 81, 0.2), rgba(99, 102, 241, 0.3), rgba(55, 65, 81, 0.2));
+    background-size: 200% 100%;
+    animation: ${loadingAnimation} 1.8s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+`;
+
+const YoutubeSearchInput = styled.input`
+    flex-grow: 1;
+    padding: 8px 15px 8px 15px;
+    height: 36px;
+    border: none;
+    background-color: transparent;
+    color: #F3F4F6;
+    font-size: 0.9rem;
+    outline: none;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
+`;
+
+const ClearYoutubeSearchButton = styled.button`
+    position: absolute;
+    right: 55px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    z-index: 2;
+
+    &:hover {
+        color: #F3F4F6;
+    }
+`;
+
+const YoutubeSearchButton = styled.button`
+    padding: 0 16px;
+    height: 36px;
+    border: none;
+    border-left: 1px solid #4B5563;
+    background-color: #313131;
+    color: #F3F4F6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
+    z-index: 1;
+    flex-shrink: 0;
+    border-radius: 0 19px 19px 0;
+
+    &:hover {
+        background-color: #4d4d4d;
+    }
+`;
+
+const SettingsButton = styled(ControlButton)``;
+
+// Buton grupları için wrapper
+const ButtonGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing.small || '8px'};
+`;
+
+// Gruplar arası ayırıcı
+const Separator = styled.div`
+    width: 1px;
+    height: 24px;
+    background-color: #4B5563;
+    margin: 0 ${({ theme }) => theme.spacing.medium || '16px'};
+`;
+
 const getLayoutName = (cols: number): string => {
     const config = gridLayoutConfig[cols];
     if (!config) return `${cols} Columns`;
-    return `${config.rows}x${Math.ceil(config.cells / config.rows)} Grid`;
+    const rows = config.rows || Math.ceil(config.cells / cols);
+    const calculatedCols = Math.ceil(config.cells / rows);
+    return `${rows}x${calculatedCols} Grid`;
 };
 
 export default function Home() {
-    const { toggleChannelListVisibility } = useUIStore();
-    const [isFullscreenActive, setIsFullscreenActive] = useState(false);
-    const { isGloballyMuted, toggleGlobalMute, isPlayingGlobally, toggleGlobalPlayPause } = usePlayerStore();
+    const { isChannelListVisible, toggleChannelListVisibility } = useUIStore();
     const {
+        layout,
         gridCols,
         setGridCols,
-        generateLayout,
-        layout,
+        resetCurrentLayout,
         addEmptyCell,
-        resetCurrentLayout
+        cellContents,
+        activeGridItemId,
+        setActiveGridItemId,
+        setCellContent
     } = useGridStore();
-    const { initializeDefaultChannels } = useChannelStore();
+    const { 
+        isGloballyMuted,
+        isPlayingGlobally,
+        toggleGlobalMute,
+        toggleGlobalPlayPause
+    } = usePlayerStore();
+    const { addChannel } = useChannelStore();
+    const {
+        fetchResults,
+        setSearchTerm,
+        clearResults,
+        results,
+        isLoading,
+        error,
+        currentSearchTerm
+    } = useSearchStore();
+    const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchWrapperRef = useRef<HTMLDivElement>(null);
 
-    const canAddMoreCells = useMemo(() => {
+    const isMaxCells = useMemo(() => {
         const config = gridLayoutConfig[gridCols];
-        return config && layout ? layout.length < config.cells : false;
-    }, [gridCols, layout]);
+        return config ? layout.length >= config.cells : true;
+    }, [layout, gridCols]);
 
-    useEffect(() => {
-        const hydratedState = useGridStore.getState();
-        if (hydratedState.layout && hydratedState.layout.length > 0) {
-            console.log("Using persisted layout.");
+    const handleFullScreenChange = useCallback(() => {
+        setIsFullScreen(!!document.fullscreenElement);
+    }, []);
+
+    const handleYoutubeSearch = () => {
+        const term = currentSearchTerm.trim();
+        if (term) {
+            fetchResults(term);
+            setIsSearchDropdownOpen(true);
         } else {
-            console.log("Generating initial layout based on gridCols.");
-            generateLayout(hydratedState.gridCols);
+            clearResults();
+            setIsSearchDropdownOpen(false);
         }
-        initializeDefaultChannels();
-    }, [generateLayout, initializeDefaultChannels]);
+    };
 
-    const toggleBrowserFullScreen = useCallback(() => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const term = e.target.value;
+        setSearchTerm(term);
+        if (term.trim() === '') {
+            clearResults();
+            setIsSearchDropdownOpen(false);
+        } else {
+            setIsSearchDropdownOpen(true);
+        }
+    };
+
+    const handleSearchKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            handleYoutubeSearch();
+        }
+    };
+
+    const handleInputFocus = () => {
+        if (currentSearchTerm || results.length > 0 || error) {
+            setIsSearchDropdownOpen(true);
+        }
+    };
+
+    const closeSearchDropdown = useCallback(() => {
+        setIsSearchDropdownOpen(false);
+    }, []);
+
+    const handleClearYoutubeSearch = () => {
+        setSearchTerm('');
+        clearResults();
+        setIsSearchDropdownOpen(false);
+        searchInputRef.current?.focus();
+    };
+
+    const toggleFullScreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                console.error(`Error attempting full-screen: ${err.message} (${err.name})`);
             });
         } else {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             }
         }
-    }, []);
+    };
 
     useEffect(() => {
-        const handleFullScreenChange = () => {
-            setIsFullscreenActive(!!document.fullscreenElement);
-        };
         document.addEventListener('fullscreenchange', handleFullScreenChange);
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, [handleFullScreenChange]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target as Node)) {
+                closeSearchDropdown();
+            }
         };
-    }, []);
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [closeSearchDropdown]);
 
     return (
         <ThemeProvider theme={theme}>
             <GlobalStyles />
             <AppWrapper>
-                <Header $isFullScreen={isFullscreenActive}>
-                    <HeaderLeft $isFullScreen={isFullscreenActive}>
-                        {!isFullscreenActive && (
+                <Header $isFullScreen={isFullScreen}>
+                    <HeaderLeft $isFullScreen={isFullScreen}>
+                        {!isFullScreen && (
                             <SidebarToggleButton onClick={toggleChannelListVisibility} title="Toggle Channel List">
                                 <FaBars />
                             </SidebarToggleButton>
                         )}
-                        <SvgLogo viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="30" height="24" rx="4" fill="#FFFFFF"/>
-                            <rect x="4" y="4" width="22" height="16" rx="2" fill="#FF0000"/>
-                            <path d="M13 10L18 12L13 14V10Z" fill="#FFFFFF"/>
+                        <SvgLogo viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                         </SvgLogo>
-                        <Title>TubeTopia</Title>
+                        <Title>Youtuber App</Title>
                     </HeaderLeft>
-
+                    <YoutubeSearchWrapper ref={searchWrapperRef}>
+                        <YoutubeSearchInputContainer>
+                            {isLoading && <SearchLoadingIndicator />}
+                            <YoutubeSearchInput
+                                ref={searchInputRef}
+                                type="text"
+                                placeholder="Search YouTube..."
+                                value={currentSearchTerm}
+                                onChange={handleInputChange}
+                                onKeyPress={handleSearchKeyPress}
+                                onFocus={handleInputFocus}
+                            />
+                            {currentSearchTerm && !isLoading && (
+                                <ClearYoutubeSearchButton onClick={handleClearYoutubeSearch} title="Clear Search">
+                                    <FaTimes />
+                                </ClearYoutubeSearchButton>
+                            )}
+                            <YoutubeSearchButton onClick={handleYoutubeSearch}>
+                                <FaSearch />
+                            </YoutubeSearchButton>
+                        </YoutubeSearchInputContainer>
+                        {isSearchDropdownOpen && (
+                            <YoutubeSearchResultsDropdown
+                                inputRef={searchInputRef}
+                                onClose={closeSearchDropdown}
+                            />
+                        )}
+                    </YoutubeSearchWrapper>
                     <HeaderControls>
-                        <FaThLarge title="Layout Settings" style={{color: '#9CA3AF'}}/>
-                        <LayoutSelect
-                            value={gridCols.toString()}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGridCols(parseInt(e.target.value, 10))}
-                            title="Select Grid Layout"
-                        >
-                            {Object.entries(gridLayoutConfig).map(([colsKey]) => (
-                                <option key={colsKey} value={colsKey}>
-                                    {getLayoutName(parseInt(colsKey))} ({colsKey} cols)
-                                </option>
-                            ))}
-                        </LayoutSelect>
-
-                        <ResetLayoutButton 
-                            onClick={resetCurrentLayout} 
-                            title="Reset current layout to default positions"
-                        >
-                            <FaSyncAlt />
-                        </ResetLayoutButton>
-
-                        <AddCellButton 
-                            onClick={addEmptyCell} 
-                            disabled={!canAddMoreCells}
-                            title={canAddMoreCells ? "Add Empty Cell" : "Maximum cells reached for this layout"}
-                        >
-                            <FaPlus />
-                        </AddCellButton>
-
-                        <MuteButton onClick={toggleGlobalMute} title={isGloballyMuted ? "Unmute All" : "Mute All"}>
-                            {isGloballyMuted ? <FaVolumeMute /> : <FaVolumeUp />}
-                        </MuteButton>
-
-                        <PlayPauseButton onClick={toggleGlobalPlayPause} title={isPlayingGlobally ? "Pause All" : "Play All"}>
-                            {isPlayingGlobally ? <FaPause /> : <FaPlay />}
-                        </PlayPauseButton>
-
-                        <FullScreenButton onClick={toggleBrowserFullScreen} title={isFullscreenActive ? "Exit Full Screen" : "Enter Full Screen"}>
-                            {isFullscreenActive ? <FaCompress /> : <FaExpand />}
-                        </FullScreenButton>
+                        <ButtonGroup>
+                            <LayoutSelect onChange={(e) => setGridCols(Number(e.target.value))} value={gridCols}>
+                                {Object.keys(gridLayoutConfig).map((key) => (
+                                    <option key={key} value={key}>{getLayoutName(Number(key))}</option>
+                                ))}
+                            </LayoutSelect>
+                            <AddCellButton onClick={addEmptyCell} title="Add Cell" disabled={isMaxCells}>
+                                +
+                            </AddCellButton>
+                            <ResetLayoutButton onClick={resetCurrentLayout} title="Reset Grid Layout">
+                                <FaSyncAlt />
+                            </ResetLayoutButton>
+                        </ButtonGroup>
+                        <Separator />
+                        <ButtonGroup>
+                            <MuteButton onClick={toggleGlobalMute} title={isGloballyMuted ? "Unmute All" : "Mute All"}>
+                                {isGloballyMuted ? <FaVolumeMute /> : <FaVolumeUp />}
+                            </MuteButton>
+                            <PlayPauseButton onClick={toggleGlobalPlayPause} title={isPlayingGlobally ? "Pause All" : "Resume All"}>
+                                {isPlayingGlobally ? <FaPause /> : <FaPlay />}
+                            </PlayPauseButton>
+                        </ButtonGroup>
+                        <Separator />
+                        <ButtonGroup>
+                            <FullScreenButton onClick={toggleFullScreen} title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}>
+                                {isFullScreen ? <FaCompress /> : <FaExpand />}
+                            </FullScreenButton>
+                            <SettingsButton onClick={() => setIsSettingsModalOpen(true)} title="Settings">
+                                <FaCog />
+                            </SettingsButton>
+                        </ButtonGroup>
                     </HeaderControls>
                 </Header>
-                <MainContent $isFullScreen={isFullscreenActive}>
-                    {!isFullscreenActive && <Sidebar />}
+                <MainContent $isFullScreen={isFullScreen}>
+                    <Sidebar />
                     <ContentWrapper>
-                        <GridContainer isFullscreenActive={isFullscreenActive} />
-                        <ChatSidebar />
+                        <GridContainer isFullscreenActive={isFullScreen} />
+                        {/* <ChatSidebar /> */}
                     </ContentWrapper>
                 </MainContent>
+                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
             </AppWrapper>
         </ThemeProvider>
     );
