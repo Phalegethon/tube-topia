@@ -104,7 +104,11 @@ const EmptyListMessage = styled.p`
   font-size: 0.9rem;
 `;
 
-const ChannelList = () => {
+interface ChannelListProps {
+  searchTerm?: string;
+}
+
+const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
   const { channels, removeChannel } = useChannelStore();
   const { 
       activeGridItemId, 
@@ -130,12 +134,18 @@ const ChannelList = () => {
     }
   };
 
+  const filteredChannels = channels.filter(channel => 
+     channel.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <ListWrapper>
-      {channels.length === 0 ? (
-        <EmptyListMessage>No channels saved yet.</EmptyListMessage>
+      {filteredChannels.length === 0 && searchTerm ? (
+        <EmptyListMessage>No channels found matching "{searchTerm}"</EmptyListMessage>
+      ) : filteredChannels.length === 0 ? (
+        <EmptyListMessage>No channels added yet.</EmptyListMessage>
       ) : (
-        channels.map((channel) => {
+        filteredChannels.map((channel) => {
           const isPlaying = playingChannelIds.has(channel.id);
           return (
             <ListItem 
@@ -156,7 +166,9 @@ const ChannelList = () => {
                 title={`Remove ${channel.name || channel.id}`}
                 onClick={(e) => { 
                   e.stopPropagation();
-                  removeChannel(channel.id);
+                  if (window.confirm(`Are you sure you want to remove channel: ${channel.name || channel.id}?`)) {
+                    removeChannel(channel.id);
+                  }
                 }}
               >
                 <FaTimes />

@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import ChannelList from './ChannelList';
 import ChannelForm from './ChannelForm';
 import useUIStore from '@/store/uiStore'; // Yeni store'u import et
-import { FaLinkedin, FaUndo } from 'react-icons/fa'; // LinkedIn ve FaUndo ikonları eklendi
+import { FaLinkedin, FaUndo, FaTimes } from 'react-icons/fa'; // LinkedIn ve FaUndo ikonları eklendi
 
 const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
   width: 250px;
@@ -22,39 +22,29 @@ const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
 `;
 
 const Section = styled.div`
-  padding: ${({ theme }) => theme.spacing.medium}; // Padding biraz artırıldı
-
-  &:not(:last-of-type) { // Sadece son olmayan section için geçerli
-    padding-bottom: ${({ theme }) => theme.spacing.small}; // Alt boşluk azaltıldı
-  }
+  padding: ${({ theme }) => theme.spacing.medium};
+  padding-bottom: ${({ theme }) => theme.spacing.small}; // Alt boşluk azaltıldı
   
-  // Buradaki flex-grow kaldırıldı, Footer'a taşındı
-  &:last-of-type {
-    flex-grow: 1;
-    overflow-y: auto;
-    /* Scrollbar stilleri (opsiyonel) */
-    &::-webkit-scrollbar {
-        width: 6px;
-    }
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    &::-webkit-scrollbar-thumb {
-        background-color: #4B5563; // Scrollbar rengi
-        border-radius: 3px;
-    }
+  /* Kanal listesi bölümü için özel stiller */
+  &.channel-list-section {
+    display: flex; // İçeriği dikey yönetmek için
+    flex-direction: column;
+    flex-grow: 1; // Kalan alanı doldur
+    overflow: hidden; // İç scroll için önemli
+    padding-top: ${({ theme }) => theme.spacing.small}; // Üst boşluk ayarı
   }
 
   h3 {
     margin-top: 0;
-    margin-bottom: ${({ theme }) => theme.spacing.medium}; // Boşluk artırıldı
-    padding-bottom: ${({ theme }) => theme.spacing.small}; // Boşluk ayarlandı
-    border-bottom: 1px solid #4B5563; // Daha belirgin sınır çizgisi
-    font-size: 0.75rem; // Font boyutu küçültüldü
-    font-weight: 700; // Daha kalın
-    color: #9CA3AF; // Açık gri başlık rengi
+    margin-bottom: ${({ theme }) => theme.spacing.medium}; 
+    padding-bottom: ${({ theme }) => theme.spacing.small};
+    border-bottom: 1px solid #4B5563; 
+    font-size: 0.75rem; 
+    font-weight: 700;
+    color: #9CA3AF;
     text-transform: uppercase;
-    letter-spacing: 0.8px; // Harf aralığı artırıldı
+    letter-spacing: 0.8px;
+    flex-shrink: 0; // Başlık küçülmesin
   }
 `;
 
@@ -123,8 +113,71 @@ const LinkedInLink = styled.a`
     }
 `;
 
+// Arama alanı için stiller
+const SearchContainer = styled.div`
+    position: relative;
+    margin-bottom: ${({ theme }) => theme.spacing.small};
+    flex-shrink: 0; // Arama alanı küçülmesin
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    padding: 6px 28px 6px 10px; // Sağda temizleme butonu için boşluk
+    border: 1px solid #4B5563;
+    border-radius: 4px;
+    background-color: #374151;
+    color: #F3F4F6;
+    font-size: 0.8rem;
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus {
+        border-color: ${({ theme }) => theme.colors.primary};
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+`;
+
+const ClearSearchButton = styled.button`
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    
+    &:hover {
+        color: #F3F4F6;
+    }
+`;
+
+// Kanal listesinin kendisi için scrollable container
+const ChannelListWrapper = styled.div`
+    flex-grow: 1; // Kalan alanı doldur
+    overflow-y: auto; // Dikey scroll
+    margin-right: -${({ theme }) => theme.spacing.medium}; // Sağdaki padding'i dengele (scrollbar için)
+    padding-right: ${({ theme }) => theme.spacing.medium}; // Scrollbar boşluğu
+    /* Scrollbar stilleri (opsiyonel) */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background-color: #4B5563; // Scrollbar rengi
+        border-radius: 3px;
+    }
+`;
+
 const Sidebar = () => {
   const { isChannelListVisible } = useUIStore(); // State'i al
+  const [searchTerm, setSearchTerm] = useState(''); // Arama state'i
 
   const handleResetSettings = () => {
       if (window.confirm("Are you sure you want to reset all settings? This will remove all saved channels and reset the layout.")) {
@@ -139,9 +192,24 @@ const Sidebar = () => {
         <h3>Add Channel</h3>
         <ChannelForm />
       </Section>
-      <Section>
+      <Section className="channel-list-section">
         <h3>Saved Channels</h3>
-        <ChannelList />
+        <SearchContainer>
+          <SearchInput 
+            type="text" 
+            placeholder="Search channels..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <ClearSearchButton onClick={() => setSearchTerm('')} title="Clear search">
+              <FaTimes />
+            </ClearSearchButton>
+          )}
+        </SearchContainer>
+        <ChannelListWrapper>
+          <ChannelList searchTerm={searchTerm} />
+        </ChannelListWrapper>
       </Section>
       <FooterSection>
           {/* Reset Butonu Alanı */} 
