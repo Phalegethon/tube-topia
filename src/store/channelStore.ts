@@ -18,6 +18,7 @@ interface ChannelState {
   addChannel: (channel: Omit<Channel, 'id'>) => Promise<boolean>;
   removeChannel: (id: string) => void;
   updateChannel: (id: string, updatedChannel: Partial<Omit<Channel, 'id'>>) => void;
+  initializeDefaultChannels: () => void; // Yeni başlatma fonksiyonu
 }
 
 // Basit bir URL/ID ayrıştırma fonksiyonu (daha gelişmiş hale getirilebilir)
@@ -119,23 +120,20 @@ const fetchContentName = async (id: string, type: ChannelType): Promise<string |
 
 const useChannelStore = create<ChannelState>()(
   persist(
-    (set, get) => ({ // get eklendi
+    (set, get) => ({ 
       channels: [],
-      // addChannel fonksiyonu async ve boolean döndürecek
       addChannel: async (newChannelData): Promise<boolean> => {
          const extracted = extractIdAndType(newChannelData.url);
          if (!extracted) {
-             // Konsol log yerine alert göster
              alert(`Invalid YouTube URL or ID format: ${newChannelData.url}`);
              console.error("Could not extract ID or type from URL:", newChannelData.url);
-             return false; // Başarısız olduğunu belirt
+             return false; 
          }
 
          if (get().channels.some(channel => channel.id === extracted.id)) {
-            // Uyarıyı alert ile göster
             alert(`Channel with ID ${extracted.id} already exists.`);
             console.warn(`Channel with ID ${extracted.id} already exists.`);
-            return false; // Başarısız (zaten var)
+            return false; 
          }
 
          let channelName = newChannelData.name || extracted.name;
@@ -153,12 +151,10 @@ const useChannelStore = create<ChannelState>()(
          };
 
          set({ channels: [...get().channels, newChannel] });
-         return true; // Başarılı
+         return true; 
       },
       removeChannel: (id) => {
-        // Önce grid store'dan bu contentId'yi temizle
         useGridStore.getState().clearContentIdFromAllCells(id);
-        // Sonra kanalı state'den sil
         set((state) => ({ channels: state.channels.filter((channel) => channel.id !== id) }));
       },
       updateChannel: (id, updatedChannel) => {
@@ -167,7 +163,45 @@ const useChannelStore = create<ChannelState>()(
             channel.id === id ? { ...channel, ...updatedChannel } : channel
           ),
         }));
-        // İsim güncellenirse grid'deki gösterim de güncellenecektir (GridItem name'i channelStore'dan alıyor)
+      },
+
+      // Yeni başlatma fonksiyonu
+      initializeDefaultChannels: () => {
+        // Sadece kanallar boşsa çalıştır
+        if (get().channels.length === 0) {
+            console.log("Initializing default channels...");
+            const defaultChannelsData: Omit<Channel, 'id'>[] = [
+                { name: 'Halk TV', url: 'https://www.youtube.com/watch?v=ylZEtd1qSTk', type: 'live' },
+                { name: 'Sözcü Tv', url: 'https://www.youtube.com/watch?v=uvRufI_dfz4', type: 'live' },
+            ];
+
+            const addedChannels: Channel[] = [];
+            let assignedCount = 0;
+
+            defaultChannelsData.forEach((chData) => {
+                const extracted = extractIdAndType(chData.url);
+                if (extracted) {
+                    const newChannel: Channel = {
+                        id: extracted.id,
+                        url: chData.url,
+                        name: chData.name || extracted.id,
+                        type: extracted.type,
+                    };
+                    addedChannels.push(newChannel);
+
+                    // İlk iki kanalı grid'e ata (gridStore'un 2x2 olduğunu varsayıyoruz)
+                    if (assignedCount < 2) {
+                        useGridStore.getState().setCellContent(`cell-${assignedCount}`, newChannel.id);
+                        assignedCount++;
+                    }
+                }
+            });
+
+            if (addedChannels.length > 0) {
+                set({ channels: addedChannels });
+                console.log("Default channels added:", addedChannels);
+            }
+        }
       },
     }),
     {

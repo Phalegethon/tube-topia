@@ -49,7 +49,7 @@ const createDefaultLayout = (cellCount: number, cols: number, rows: number): Lay
 };
 
 // Grid sayısını (cols), hücre sayısına (cells) ve satır sayısına (rows) çeviren map
-const gridLayoutConfig: { [key: number]: { cells: number; rows: number } } = {
+export const gridLayoutConfig: { [key: number]: { cells: number; rows: number } } = {
     4: { cells: 4, rows: 2 },  // 2x2
     6: { cells: 6, rows: 2 },  // 3x2
     8: { cells: 8, rows: 2 },  // 4x2
@@ -60,9 +60,9 @@ const gridLayoutConfig: { [key: number]: { cells: number; rows: number } } = {
 const useGridStore = create<GridState>()(
   persist(
     (set, get) => ({
-      // Başlangıç layout'unu yeni config ile oluştur
-      layout: createDefaultLayout(gridLayoutConfig[12].cells, 12, gridLayoutConfig[12].rows),
-      gridCols: 12,
+      // Başlangıç layout'unu 2x2 (4 cols) olarak ayarla
+      layout: createDefaultLayout(gridLayoutConfig[4].cells, 4, gridLayoutConfig[4].rows),
+      gridCols: 4,
       activeGridItemId: null,
       cellContents: {},
       isChatVisible: false, // Başlangıçta chat gizli
@@ -128,10 +128,18 @@ const useGridStore = create<GridState>()(
       storage: createJSONStorage(() => localStorage),
       // isChatVisible persist edilmeyecek
       partialize: (state) => ({ 
-          layout: state.layout, 
+          // layout: state.layout, // layout'u persist etme, cols'a göre oluşturulsun
           gridCols: state.gridCols, 
           cellContents: state.cellContents 
         }),
+      // onRehydrateStorage: (state) => {
+      //   console.log("hydration finished");
+      //   // İsteğe bağlı: Hidrasyon sonrası ek işlemler
+      //   if (state) {
+      //     // Hidrasyon sonrası layout'u gridCols'a göre yeniden oluştur
+      //     state.generateLayout(state.gridCols);
+      //   }
+      // },
     }
   )
 );

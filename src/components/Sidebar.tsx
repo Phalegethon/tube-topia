@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import ChannelList from './ChannelList';
 import ChannelForm from './ChannelForm';
 import useUIStore from '@/store/uiStore'; // Yeni store'u import et
+import { FaLinkedin } from 'react-icons/fa'; // LinkedIn ikonu eklendi
 
 const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
   width: 250px;
@@ -23,9 +24,12 @@ const SidebarWrapper = styled.aside<{ $isVisible: boolean }>`
 const Section = styled.div`
   padding: ${({ theme }) => theme.spacing.medium}; // Padding biraz artırıldı
 
-  &:last-child {
-    padding-top: ${({ theme }) => theme.spacing.small}; // Hafif üst boşluk
-    padding-bottom: 0;
+  &:not(:last-of-type) { // Sadece son olmayan section için geçerli
+    padding-bottom: ${({ theme }) => theme.spacing.small}; // Alt boşluk azaltıldı
+  }
+  
+  // Buradaki flex-grow kaldırıldı, Footer'a taşındı
+  &:last-of-type {
     flex-grow: 1;
     overflow-y: auto;
     /* Scrollbar stilleri (opsiyonel) */
@@ -54,6 +58,36 @@ const Section = styled.div`
   }
 `;
 
+// Footer için yeni styled component
+const FooterSection = styled.div`
+    margin-top: auto; // Üstteki elemanları iterek en alta yerleşir
+    padding: ${({ theme }) => theme.spacing.small} ${({ theme }) => theme.spacing.medium};
+    border-top: 1px solid #374151; // Üst sınır çizgisi
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0; // Küçülmesini engelle
+`;
+
+const CopyrightText = styled.p`
+    font-size: 0.7rem;
+    color: #6B7280; // Daha soluk bir renk
+    margin: 0;
+`;
+
+const LinkedInLink = styled.a`
+    color: #9CA3AF; // İkon rengi
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: #E5E7EB; // Hover rengi
+    }
+`;
+
 const Sidebar = () => {
   const { isChannelListVisible } = useUIStore(); // State'i al
 
@@ -67,6 +101,14 @@ const Sidebar = () => {
         <h3>Saved Channels</h3>
         <ChannelList />
       </Section>
+      {/* Footer eklendi */}
+      <FooterSection>
+          <LinkedInLink href="https://www.linkedin.com/in/sgsuerdem/" target="_blank" rel="noopener noreferrer" title="LinkedIn Profili">
+              <FaLinkedin />
+          </LinkedInLink>
+          <CopyrightText>S. Gürkan Süerdem</CopyrightText>
+          <CopyrightText>2025<sup>©</sup></CopyrightText>
+      </FooterSection>
     </SidebarWrapper>
   );
 };

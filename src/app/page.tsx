@@ -8,21 +8,14 @@ import Sidebar from '@/components/Sidebar';
 import GridContainer from '@/components/GridContainer';
 import ChatSidebar from '@/components/ChatSidebar';
 import useUIStore from '@/store/uiStore';
-import useGridStore from '@/store/gridStore';
+import useGridStore, { gridLayoutConfig } from '@/store/gridStore';
 import usePlayerStore from '@/store/playerStore';
+import useChannelStore from '@/store/channelStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
     FaThLarge, FaPlay, FaPause
 } from 'react-icons/fa';
-
-const gridLayoutConfig: { [key: number]: { cells: number; rows: number } } = {
-    4: { cells: 4, rows: 2 },
-    6: { cells: 6, rows: 2 },
-    8: { cells: 8, rows: 2 },
-    9: { cells: 9, rows: 3 },
-    12: { cells: 12, rows: 3 }
-};
 
 const getLayoutName = (cols: number): string => {
     switch(cols) {
@@ -155,7 +148,14 @@ export default function Home() {
     const { toggleChannelListVisibility } = useUIStore();
     const [isFullscreenActive, setIsFullscreenActive] = useState(false);
     const { isGloballyMuted, toggleGlobalMute, isPlayingGlobally, toggleGlobalPlayPause } = usePlayerStore();
-    const { gridCols, setGridCols } = useGridStore();
+    const { gridCols, setGridCols, generateLayout } = useGridStore();
+    const { initializeDefaultChannels } = useChannelStore();
+
+    useEffect(() => {
+        const initialCols = useGridStore.getState().gridCols;
+        generateLayout(initialCols);
+        initializeDefaultChannels();
+    }, [generateLayout, initializeDefaultChannels]);
 
     const toggleBrowserFullScreen = useCallback(() => {
         if (!document.fullscreenElement) {
