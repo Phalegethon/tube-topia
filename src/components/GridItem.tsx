@@ -4,17 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import YouTube, { YouTubeProps, YouTubePlayer } from 'react-youtube';
 import useChannelStore from '@/store/channelStore';
-import usePlayerStore from '@/store/playerStore'; 
-import { FaYoutube, FaExclamationTriangle } from 'react-icons/fa'; // Ses ikonları ve hata ikonu eklendi
+import usePlayerStore from '@/store/playerStore';
+import useGridStore from '@/store/gridStore';
+import { FaYoutube, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 
 const StyledGridItem = styled.div`
   width: 100%;
   height: 100%;
-  background-color: #282828; // Koyu arka plan
+  background-color: #282828;
   overflow: hidden;
-  display: flex; // İçeriği (placeholder) ortalamak için
+  display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 `;
 
 const PlaceholderWrapper = styled.div`
@@ -39,9 +41,8 @@ const PlaceholderText = styled.p`
     margin: 0;
 `;
 
-// Hata mesajı için stil
 const ErrorWrapper = styled(PlaceholderWrapper)`
-    color: #f87171; // Kırmızımsı renk
+    color: #f87171;
 `;
 
 const ErrorIcon = styled(FaExclamationTriangle)`
@@ -51,27 +52,54 @@ const ErrorIcon = styled(FaExclamationTriangle)`
 `;
 
 const ErrorText = styled(PlaceholderText)`
-    color: inherit; // Wrapper'dan rengi al
+    color: inherit;
+`;
+
+const RemoveButton = styled.button`
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ccc;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    z-index: 10;
+    opacity: 0.5;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+
+    &:hover {
+        opacity: 1;
+        background: rgba(255, 0, 0, 0.7);
+        color: #fff;
+    }
 `;
 
 interface GridItemProps {
-  cellId: string; // Hücrenin kendi ID'si (örn. 'cell-0')
-  contentId: string | null; // Bu hücrede gösterilecek kanalın/videonun ID'si veya null
+  cellId: string;
+  contentId: string | null;
 }
 
 const GridItem = ({ cellId, contentId }: GridItemProps) => {
-  // contentId'ye göre kanalı bul
   const channel = useChannelStore((state) => 
     contentId ? state.channels.find((c) => c.id === contentId) : null
   );
-  // Sadece global ses durumu alındı
   const { isGloballyMuted, isPlayingGlobally } = usePlayerStore(); 
-  // Oynatıcı referansını tutmak için ref
   const playerRef = useRef<YouTubePlayer | null>(null);
-  // Hata durumu için state
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const removeCell = useGridStore(state => state.removeCell);
 
-  // Oynatıcı seçenekleri
+  const handleRemoveCell = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeCell(cellId);
+  };
+
   const opts: YouTubeProps['opts'] = {
     height: '100%',
     width: '100%',
@@ -82,7 +110,6 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
 
   let videoId: string | undefined = undefined;
 
-  // contentId değiştiğinde hata durumunu sıfırla ve gerekirse oynatıcıyı yok et
   useEffect(() => {
       setPlayerError(null);
       if (contentId === null && playerRef.current) {
@@ -90,11 +117,10 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
           if (typeof playerRef.current.destroy === 'function') {
               playerRef.current.destroy();
           }
-          playerRef.current = null; // Referansı temizle
+          playerRef.current = null;
       }
-  }, [contentId, cellId]); // cellId loglama için eklendi
+  }, [contentId, cellId]);
 
-    // Global ses durumu değişikliğini dinle (local state'i güncelleme kaldırıldı)
     useEffect(() => {
         if (playerRef.current && playerRef.current.mute && playerRef.current.unMute) {
             if (isGloballyMuted) {
@@ -105,7 +131,6 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
         }
     }, [isGloballyMuted, contentId]);
 
-    // Oynatma durumu değişikliğini dinle
     useEffect(() => {
         if (playerRef.current && playerRef.current.playVideo && playerRef.current.pauseVideo) {
             if (isPlayingGlobally) {
@@ -116,7 +141,6 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
         }
     }, [isPlayingGlobally, contentId]);
 
-    // Eğer içerik atanmışsa ve kanal bilgisi bulunmuşsa oynatıcıyı hazırla
   if (contentId && channel) {
     switch (channel.type) {
       case 'video':
@@ -129,7 +153,6 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
         opts.playerVars = { ...opts.playerVars, listType: 'playlist', list: channel.id };
         break;
       case 'channel':
-         // Kanal hala desteklenmiyor
          return (
             <StyledGridItem title={`Cell: ${cellId} - Channel content not supported: ${channel.name}`}>
               <PlaceholderWrapper>
@@ -143,7 +166,6 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
         return <StyledGridItem title={`Cell: ${cellId} - Unknown content type: ${channel.name}`}><PlaceholderText>Unknown content type.</PlaceholderText></StyledGridItem>;
     }
   } else if (contentId && !channel) {
-     // ID var ama kanal bulunamadı (silinmiş olabilir)
      return (
          <StyledGridItem title={`Cell: ${cellId} - Content ID not found: ${contentId}`}>
              <ErrorWrapper>
@@ -154,40 +176,32 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
      );
   }
 
-  // Oynatıcı hazır olduğunda referansı kaydet ve ayarları uygula
   const onPlayerReady: YouTubeProps['onReady'] = (event) => {
-    console.log(`[LOG] onPlayerReady entered for cell: ${cellId}, Content: ${contentId}`); // Log eklendi
-    // Eğer contentId hazır olmadan önce null olduysa (hızlı tıklama vb.), işlem yapma
+    console.log(`[LOG] onPlayerReady entered for cell: ${cellId}, Content: ${contentId}`);
     if (contentId === null) return;
     playerRef.current = event.target;
-    // Kalite logları ve ayarları kaldırıldı
     console.log(`Player ready for cell: ${cellId}, Content: ${contentId}`);
-    setPlayerError(null); // Başarıyla yüklendi, hatayı temizle
+    setPlayerError(null);
     if (playerRef.current) {
-        // Başlangıç ses durumunu global state'e göre ayarla
         if (isGloballyMuted) {
             playerRef.current.mute?.();
         } else {
             playerRef.current.unMute?.();
         }
-        // Başlangıç oynatma durumunu ayarla
         if (isPlayingGlobally) {
             playerRef.current.playVideo?.();
         }
     }
   };
 
-  // onError olayını güncelle
   const onPlayerError: YouTubeProps['onError'] = (event) => {
-      console.log(`[LOG] onPlayerError entered for cell: ${cellId}, Data: ${event.data}`); // Log eklendi
-      // Eğer içerik zaten kaldırıldıysa (hata geç geldiyse), loglama ve state güncelleme
+      console.log(`[LOG] onPlayerError entered for cell: ${cellId}, Data: ${event.data}`);
       if (contentId === null) {
           console.warn(`Received player error for cell ${cellId} after content was removed. Ignoring.`);
           return;
       }
       console.error('YouTube Player Error:', event.data, 'for cell:', cellId, 'content:', channel);
       let errorMessage = `Error code: ${event.data}`;
-      // Yaygın hata kodlarına göre daha anlaşılır mesajlar
       switch(event.data) {
           case 2: errorMessage = "Invalid parameter value."; break;
           case 5: errorMessage = "HTML5 player error."; break;
@@ -196,12 +210,9 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
           case 150: errorMessage = "Playback not allowed in embedded players."; break;
           default: errorMessage = `An unknown error occurred (${event.data}).`; break;
       }
-      setPlayerError(errorMessage); // Hata state'ini ayarla
+      setPlayerError(errorMessage);
   }
 
-
-
-  // Render logic
   const renderContent = () => {
       if (playerError) {
           return (
@@ -214,7 +225,7 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
       }
       const shouldRenderPlayer = videoId || (opts.playerVars?.list && opts.playerVars?.listType);
       if (shouldRenderPlayer) {
-          console.log(`[LOG] Rendering YouTube component for cell: ${cellId}, videoId: ${videoId}, opts:`, opts); // Log eklendi
+          console.log(`[LOG] Rendering YouTube component for cell: ${cellId}, videoId: ${videoId}, opts:`, opts);
           return (
               <YouTube 
                   key={contentId} 
@@ -226,12 +237,14 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
               />
           );
       }
-      // contentId null ise veya hiçbir koşul eşleşmezse placeholder
-      console.log(`[LOG] Rendering Placeholder for cell: ${cellId}`); // Log eklendi
+      console.log(`[LOG] Rendering Placeholder for cell: ${cellId}`);
       return (
           <PlaceholderWrapper>
               <PlaceholderIcon />
-              <PlaceholderText>Click here then select a channel from the list</PlaceholderText>
+              <PlaceholderText>Click here then select a channel</PlaceholderText>
+              <RemoveButton onClick={handleRemoveCell} title="Remove this cell">
+                  <FaTimes />
+              </RemoveButton>
           </PlaceholderWrapper>
       );
   };
@@ -239,6 +252,18 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
   return (
     <StyledGridItem title={`Cell: ${cellId} - ${playerError ? `Error: ${playerError}` : `Content: ${channel?.name || contentId || 'Empty'}`}`}>
       {renderContent()}
+      {contentId && !playerError && (
+           <RemoveButton 
+                onClick={(e) => {
+                    e.stopPropagation(); 
+                    useGridStore.getState().clearCellContent(cellId); 
+                }}
+                title="Clear content / Remove cell"
+                style={{ top: '5px', right: '5px' }}
+            >
+              <FaTimes />
+           </RemoveButton>
+      )}
     </StyledGridItem>
   );
 };

@@ -23,6 +23,8 @@ interface GridState {
   clearContentIdFromAllCells: (contentId: string) => void; // Belirli bir içeriği tüm hücrelerden temizle
   generateLayout: (cols: number) => void; // Yeni layout ve boş içerik oluşturma fonksiyonu
   setChatVisibility: (isVisible: boolean) => void; // Yeni fonksiyon
+  removeCell: (cellId: string) => void; // Yeni fonksiyon tanımı
+  addEmptyCell: () => void; // Yeni fonksiyon tanımı
 }
 
 // Belirli sayıda hücre için varsayılan layout oluşturan yardımcı fonksiyon
@@ -122,15 +124,86 @@ const useGridStore = create<GridState>()(
 
       // Chat görünürlüğünü ayarla
       setChatVisibility: (isVisible) => set({ isChatVisible: isVisible }),
+
+      // Yeni fonksiyon: Hücreyi layout ve içerik listesinden kaldır
+      removeCell: (cellId) => {
+          set((state) => {
+              // Layout'tan kaldır
+              const newLayout = state.layout.filter(item => item.i !== cellId);
+              // İçerik listesinden kaldır
+              const newContents = { ...state.cellContents };
+              delete newContents[cellId];
+              
+              return {
+                  layout: newLayout,
+                  cellContents: newContents,
+                  // Aktif hücre kaldırıldıysa, aktifliği sıfırla
+                  activeGridItemId: state.activeGridItemId === cellId ? null : state.activeGridItemId,
+              };
+          });
+      },
+
+      // Yeni fonksiyon: Boş hücre ekle
+      addEmptyCell: () => {
+        set((state) => {
+            const { gridCols, layout } = state;
+            const config = gridLayoutConfig[gridCols];
+            if (!config || layout.length >= config.cells) {
+                console.warn("Cannot add more cells. Maximum reached for this layout.");
+                return state; // Maksimum hücre sayısına ulaşıldıysa veya config yoksa işlem yapma
+            }
+
+            // Yeni hücre ID'sini bul
+            let nextIdIndex = 0;
+            const existingIds = layout.map(item => parseInt(item.i.split('-')[1])).filter(Number.isFinite);
+            if (existingIds.length > 0) {
+                nextIdIndex = Math.max(...existingIds) + 1;
+            }
+            const newCellId = `cell-${nextIdIndex}`;
+
+            // Yeni hücrenin pozisyonunu bul (ilk boş slotu bulmaya çalış)
+            // Bu kısım basitleştirilmiştir: Şimdilik layout'un sonuna ekler gibi davranalım
+            // Daha karmaşık bir boşluk bulma algoritması eklenebilir.
+            const cols = gridCols;
+            const rowHeight = 30; // react-grid-layout varsayılanı veya ayarlanan değer
+            const itemW = Math.round(cols / Math.ceil(config.cells / config.rows)); 
+            const itemH = 1;
+            // Basit yaklaşım: Mevcut layout'un son item'ının altına ekle
+            let newX = 0;
+            let newY = 0;
+            if (layout.length > 0) {
+                 // Çok basit: son elemanın x'ine genişliği ekle, eğer satırı aşıyorsa yeni satıra geç
+                const lastItem = layout[layout.length - 1];
+                newX = (lastItem.x + lastItem.w) % cols;
+                newY = lastItem.y + (newX === 0 ? lastItem.h : 0); // Yeni satıra geçildiyse y'yi artır
+            }
+            // TODO: Daha gelişmiş boş yer bulma mantığı eklenebilir.
+
+            const newLayoutItem: Layout = {
+                i: newCellId,
+                x: newX,
+                y: newY,
+                w: itemW,
+                h: itemH,
+                isResizable: true,
+                isDraggable: true,
+            };
+
+            return {
+                layout: [...state.layout, newLayoutItem],
+                cellContents: { ...state.cellContents, [newCellId]: null },
+            };
+        });
+      },
     }),
     {
       name: 'youtube-grid-layout-storage-v2',
       storage: createJSONStorage(() => localStorage),
       // isChatVisible persist edilmeyecek
       partialize: (state) => ({ 
-          // layout: state.layout, // layout'u persist etme, cols'a göre oluşturulsun
           gridCols: state.gridCols, 
-          cellContents: state.cellContents 
+          cellContents: state.cellContents,
+          layout: state.layout // Layout'u da persist etmeliyiz artık
         }),
       // onRehydrateStorage: (state) => {
       //   console.log("hydration finished");

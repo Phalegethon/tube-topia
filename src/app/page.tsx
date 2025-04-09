@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { ThemeProvider, css } from 'styled-components';
 import theme from '@/styles/theme';
 import GlobalStyles from '@/styles/GlobalStyles';
@@ -14,20 +14,10 @@ import useChannelStore from '@/store/channelStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
-    FaThLarge, FaPlay, FaPause
+    FaThLarge, FaPlay, FaPause, FaPlus
 } from 'react-icons/fa';
 
-const getLayoutName = (cols: number): string => {
-    switch(cols) {
-        case 4: return '2x2';
-        case 6: return '3x2';
-        case 8: return '4x2';
-        case 9: return '3x3';
-        case 12: return '4x3';
-        default: return `${cols} cols`;
-    }
-};
-
+// Styled components definitions
 const AppWrapper = styled.div`
     display: flex;
     flex-direction: column;
@@ -144,18 +134,43 @@ const ContentWrapper = styled.div`
     overflow: hidden;
 `;
 
+const AddCellButton = styled(ControlButton)<{ disabled?: boolean }>`
+    opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
+    cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+
+    &:hover {
+        background-color: ${({ disabled, theme }) => (disabled ? 'none' : 'rgba(255, 255, 255, 0.1)')};
+    }
+`;
+
+const getLayoutName = (cols: number): string => {
+    const config = gridLayoutConfig[cols];
+    if (!config) return `${cols} Columns`;
+    return `${config.rows}x${Math.ceil(config.cells / config.rows)} Grid`;
+};
+
 export default function Home() {
     const { toggleChannelListVisibility } = useUIStore();
     const [isFullscreenActive, setIsFullscreenActive] = useState(false);
     const { isGloballyMuted, toggleGlobalMute, isPlayingGlobally, toggleGlobalPlayPause } = usePlayerStore();
-    const { gridCols, setGridCols, generateLayout } = useGridStore();
+    const { gridCols, setGridCols, generateLayout, layout, addEmptyCell } = useGridStore();
     const { initializeDefaultChannels } = useChannelStore();
 
+    const canAddMoreCells = useMemo(() => {
+        const config = gridLayoutConfig[gridCols];
+        return config ? layout.length < config.cells : false;
+    }, [gridCols, layout]);
+
     useEffect(() => {
-        const initialCols = useGridStore.getState().gridCols;
-        generateLayout(initialCols);
+        const hydratedState = useGridStore.getState();
+        if (hydratedState.layout && hydratedState.layout.length > 0) {
+            console.log("Using persisted layout.");
+        } else {
+            console.log("Generating initial layout based on gridCols.");
+            generateLayout(hydratedState.gridCols);
+        }
         initializeDefaultChannels();
-    }, [generateLayout, initializeDefaultChannels]);
+    }, [generateLayout]);
 
     const toggleBrowserFullScreen = useCallback(() => {
         if (!document.fullscreenElement) {
@@ -202,16 +217,23 @@ export default function Home() {
                         <FaThLarge title="Layout Settings" style={{color: '#9CA3AF'}}/>
                         <LayoutSelect
                             value={gridCols.toString()}
-                            onChange={(e) => setGridCols(parseInt(e.target.value, 10))}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGridCols(parseInt(e.target.value, 10))}
                             title="Select Grid Layout"
                         >
-                            {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
                             {Object.entries(gridLayoutConfig).map(([colsKey, config]) => (
                                 <option key={colsKey} value={colsKey}>
                                     {getLayoutName(parseInt(colsKey))} ({colsKey} cols)
                                 </option>
                             ))}
                         </LayoutSelect>
+
+                        <AddCellButton 
+                            onClick={addEmptyCell} 
+                            disabled={!canAddMoreCells}
+                            title={canAddMoreCells ? "Add Empty Cell" : "Maximum cells reached for this layout"}
+                        >
+                            <FaPlus />
+                        </AddCellButton>
 
                         <MuteButton onClick={toggleGlobalMute} title={isGloballyMuted ? "Unmute All" : "Mute All"}>
                             {isGloballyMuted ? <FaVolumeMute /> : <FaVolumeUp />}
