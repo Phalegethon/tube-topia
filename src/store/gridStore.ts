@@ -25,6 +25,7 @@ interface GridState {
   setChatVisibility: (isVisible: boolean) => void; // Yeni fonksiyon
   removeCell: (cellId: string) => void; // Yeni fonksiyon tanımı
   addEmptyCell: () => void; // Yeni fonksiyon tanımı
+  resetCurrentLayout: () => void; // Yeni fonksiyon tanımı
 }
 
 // Belirli sayıda hücre için varsayılan layout oluşturan yardımcı fonksiyon
@@ -191,6 +192,26 @@ const useGridStore = create<GridState>()(
                 cellContents: { ...state.cellContents, [newCellId]: null },
             };
         });
+      },
+
+      // Yeni fonksiyon: Mevcut layout'u varsayılana sıfırla
+      resetCurrentLayout: () => {
+          set((state) => {
+              const { gridCols } = state;
+              const config = gridLayoutConfig[gridCols];
+              if (!config) {
+                  console.warn("Cannot reset layout: config not found for cols:", gridCols);
+                  return state; // Config yoksa işlem yapma
+              }
+              // Mevcut gridCols'a göre varsayılan layout'u oluştur
+              const defaultLayout = createDefaultLayout(config.cells, gridCols, config.rows);
+              console.log("Resetting layout to default for cols:", gridCols);
+              // Sadece layout'u güncelle, cellContents aynı kalsın
+              return {
+                  layout: defaultLayout,
+                  activeGridItemId: null, // Aktif hücreyi sıfırla
+              };
+          });
       },
     }),
     {

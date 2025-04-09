@@ -13,7 +13,7 @@ import useChannelStore from '@/store/channelStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
-    FaThLarge, FaPlay, FaPause, FaPlus
+    FaThLarge, FaPlay, FaPause, FaPlus, FaSyncAlt
 } from 'react-icons/fa';
 import theme from '@/styles/theme';
 
@@ -143,6 +143,10 @@ const AddCellButton = styled(ControlButton)<{ disabled?: boolean }>`
     }
 `;
 
+const ResetLayoutButton = styled(ControlButton)`
+    // Özel stil gerekirse buraya eklenebilir
+`;
+
 const getLayoutName = (cols: number): string => {
     const config = gridLayoutConfig[cols];
     if (!config) return `${cols} Columns`;
@@ -158,7 +162,8 @@ export default function Home() {
         setGridCols,
         generateLayout,
         layout,
-        addEmptyCell
+        addEmptyCell,
+        resetCurrentLayout
     } = useGridStore();
     const { initializeDefaultChannels } = useChannelStore();
 
@@ -232,6 +237,13 @@ export default function Home() {
                                 </option>
                             ))}
                         </LayoutSelect>
+
+                        <ResetLayoutButton 
+                            onClick={resetCurrentLayout} 
+                            title="Reset current layout to default positions"
+                        >
+                            <FaSyncAlt />
+                        </ResetLayoutButton>
 
                         <AddCellButton 
                             onClick={addEmptyCell} 
