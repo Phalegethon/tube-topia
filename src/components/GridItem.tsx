@@ -81,34 +81,23 @@ const RemoveButton = styled.button`
     }
 `;
 
-// Sürükleme için overlay
-const DragOverlay = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
+// YouTube oynatıcısını saran div için stil
+const PlayerWrapper = styled.div<{ $isDragging?: boolean; $isResizing?: boolean }>`
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0); // Şeffaf
-    z-index: 5; // Butonların altında, videonun üstünde
-    cursor: grab;
-    pointer-events: none; // Normalde tıklanamaz
-
-    // GridItemWrapper sürüklenebilir durumda olduğunda (parent hover veya sürükleme class'ı)
-    // Not: parent hover daha basit bir yaklaşımdır. react-grid-layout class'ları daha spesifik olabilir.
-    .react-draggable:hover &,
-    .react-grid-item:hover & { // react-grid-layout tarafından eklenen parent class'ları hedefle
-         pointer-events: auto; // Tıklanabilir hale getir
-         // İsteğe bağlı: Hafif bir arka plan eklenebilir
-         // background-color: rgba(255, 255, 255, 0.05);
-    }
+    position: relative; 
+    // Sürüklenirken VEYA yeniden boyutlandırılırken fare olaylarını engelle
+    ${({ $isDragging, $isResizing }) => ($isDragging || $isResizing) && `pointer-events: none;`}
 `;
 
 interface GridItemProps {
   cellId: string;
   contentId: string | null;
+  isDragging?: boolean;
+  isResizing?: boolean;
 }
 
-const GridItem = ({ cellId, contentId }: GridItemProps) => {
+const GridItem = ({ cellId, contentId, isDragging, isResizing }: GridItemProps) => {
   const channel = useChannelStore((state) => 
     contentId ? state.channels.find((c) => c.id === contentId) : null
   );
@@ -247,19 +236,18 @@ const GridItem = ({ cellId, contentId }: GridItemProps) => {
       }
       const shouldRenderPlayer = videoId || (opts.playerVars?.list && opts.playerVars?.listType);
       if (shouldRenderPlayer) {
-          console.log(`[LOG] Rendering YouTube component for cell: ${cellId}, videoId: ${videoId}, opts:`, opts);
+          console.log(`[LOG] Rendering YouTube component for cell: ${cellId}, isDragging: ${isDragging}, isResizing: ${isResizing}`);
           return (
-              <>
-                  <DragOverlay />
+              <PlayerWrapper $isDragging={isDragging} $isResizing={isResizing}>
                   <YouTube 
                       key={contentId} 
                       videoId={videoId}
                       opts={opts} 
                       onReady={onPlayerReady} 
                       onError={onPlayerError}
-                      style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
+                      style={{ width: '100%', height: '100%' }}
                   />
-              </>
+              </PlayerWrapper>
           );
       }
       console.log(`[LOG] Rendering Placeholder for cell: ${cellId}`);

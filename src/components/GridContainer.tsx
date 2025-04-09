@@ -110,20 +110,33 @@ const GridItemWrapper = styled.div<{ $isDragging?: boolean }>`
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Önemli: İçeriğin taşmasını engeller */
-  position: relative; /* Butonları konumlandırmak için */
-  border: 1px solid #333; // Hücre kenarlığı
-  transition: opacity 0.2s ease-in-out; // Opaklık geçişi
+  position: relative;
+  border: 1px solid #333;
+  cursor: grab;
+  
+  padding: 10px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #2a2a2a;
+  }
+
   ${({ $isDragging }) => 
       $isDragging && 
       css`
-        // dragging class'ı artık GridContainerWrapper içinde tanımlandı
+        opacity: 0.7;
+        cursor: grabbing;
+        background-color: #2a2a2a;
       `
   }
-  /* Normal cursor */
-  &:not(:has(*[draggable="true"][aria-grabbed="true"])) { // React-grid-layout tarafından eklenen attribute
-      cursor: grab;
-  }
+`;
+
+// GridItem bileşenini saran iç div (padding alanının içinde kalacak)
+const ItemContent = styled.div`
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 `;
 
 // Genel buton stili
@@ -185,8 +198,8 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
-  // Sürüklenen öğenin ID'sini tutmak için state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [resizingItemId, setResizingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -217,6 +230,15 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
     // Layout değişikliğini handleLayoutChange zaten yapıyor.
   };
 
+  // Yeniden boyutlandırma handler'ları eklendi
+  const onResizeStart = (layout: Layout[], oldItem: Layout, newItem: Layout) => {
+    setResizingItemId(newItem.i);
+  };
+  const onResizeStop = () => {
+    setResizingItemId(null);
+     // Layout değişikliğini handleLayoutChange zaten yapıyor.
+  };
+
   const rowsCount = layout.length > 0 ? Math.max(...layout.map(l => l.y + l.h)) : 1;
   const gridMargin: [number, number] = isFullscreenActive ? [2, 2] : [10, 10];
   const rowHeight = containerHeight > 0 && rowsCount > 0 ? Math.max(1, Math.floor((containerHeight - (rowsCount + 1) * gridMargin[1]) / rowsCount)) : 100; // Sıfıra bölme hatasını engelle
@@ -240,25 +262,32 @@ const GridContainer: React.FC<GridContainerProps> = ({ isFullscreenActive }) => 
           margin={gridMargin}
           onLayoutChange={handleLayoutChange}
           draggableCancel=".grid-item-remove-button, .grid-item-chat-button"
-          // Sürükleme olaylarını ekle
+          // Sürükleme olayları
           onDragStart={onDragStart}
           onDragStop={onDragStop}
+          // Yeniden boyutlandırma olayları eklendi
+          onResizeStart={onResizeStart}
+          onResizeStop={onResizeStop}
           compactType={null}
           preventCollision={true}
         >
           {layout.map((item) => {
-            const contentId = cellContents[item.i] || null; // null olabileceğinden emin ol
-            // getChannelById kaldırıldı
-            // const channel = getChannelById(contentId);
-            // Kanal bilgisini butonlar için alalım
+            const contentId = cellContents[item.i] || null;
             const channelForButtons = contentId ? channels.find(c => c.id === contentId) : null;
             const isDragging = item.i === draggingItemId;
+            const isResizing = item.i === resizingItemId;
 
             return (
               <GridItemWrapper key={item.i} $isDragging={isDragging}>
-                {/* GridItem'a cellId ve contentId prop'larını geçir */}
-                <GridItem cellId={item.i} contentId={contentId} />
-                {/* Butonlar için channelForButtons kullan */}
+                <ItemContent>
+                    <GridItem 
+                        cellId={item.i} 
+                        contentId={contentId} 
+                        isDragging={isDragging} 
+                        isResizing={isResizing} 
+                    />
+                </ItemContent>
+                 {/* Butonlar ItemContent dışında, Wrapper içinde kalmalı */}
                  {channelForButtons && (
                   <>
                     <GridItemRemoveButton
