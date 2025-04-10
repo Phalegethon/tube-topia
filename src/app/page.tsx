@@ -1,509 +1,467 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import styled, { ThemeProvider, css, keyframes } from 'styled-components';
+import React from 'react';
+import styled, { ThemeProvider, css } from 'styled-components';
 import GlobalStyles from '@/styles/GlobalStyles';
-import Sidebar from '@/components/Sidebar';
-import GridContainer from '@/components/GridContainer';
-import ChatSidebar from '@/components/ChatSidebar';
-import useUIStore from '@/store/uiStore';
-import useGridStore, { gridLayoutConfig, GridState } from '@/store/gridStore';
-import usePlayerStore, { PlayerState } from '@/store/playerStore';
-import useChannelStore from '@/store/channelStore';
-import useSearchStore, { SearchState } from '@/store/searchStore';
-import useApiKeyStore from '@/store/apiKeyStore';
-import {
-    FaBars, FaExpand, FaCompress,
-    FaVolumeUp, FaVolumeMute,
-    FaThLarge, FaPlay, FaPause, FaPlus, FaSyncAlt, FaSearch, FaCog, FaTimes
-} from 'react-icons/fa';
 import theme from '@/styles/theme';
-import SettingsModal from '@/components/SettingsModal';
-import YoutubeSearchResultsDropdown from '@/components/YoutubeSearchResultsDropdown';
+import Link from 'next/link';
+import { FaYoutube, FaCheckCircle, FaTimesCircle, FaCrown, FaThLarge, FaListUl, FaSave, FaSignInAlt, FaRocket, FaInfoCircle, FaColumns } from 'react-icons/fa';
 
-// Styled components definitions
-const AppWrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-    background-color: ${() => theme.colors.background};
+// --- Base Styles & Theme ---
+
+// (Keep existing theme import)
+
+// --- Styled Components ---
+
+const LandingPageWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: ${() => theme.colors.background};
+  color: ${() => theme.colors.text};
+  overflow-x: hidden; // Prevent horizontal scroll
 `;
 
-const Header = styled.header<{ $isFullScreen: boolean }>`
-    height: ${({ $isFullScreen }) => ($isFullScreen ? '40px' : '60px')};
-    background-color: #1F2937;
-    color: #F3F4F6;
-    display: flex;
-    align-items: flex-start;
-    padding: 8px ${({ theme }) => theme.spacing.medium || "16px"};
-    flex-shrink: 0;
-    justify-content: space-between;
-    border-bottom: 1px solid #374151;
-    transition: height 0.2s ease-in-out;
+const Navbar = styled.nav`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${() => theme.spacing.medium} ${() => theme.spacing.large};
+  background-color: rgba(31, 41, 55, 0.8); // Slightly transparent bg
+  border-bottom: 1px solid ${() => theme.colors.border};
+  position: sticky; // Make navbar sticky
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px); // Blur effect for modern look
 `;
 
-const HeaderLeft = styled.div<{ $isFullScreen: boolean }>`
+const LogoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${() => theme.spacing.small};
+  color: ${() => theme.colors.white};
+`;
+
+const LogoIcon = styled(FaYoutube)`
+  font-size: 2rem;
+  color: #FF0000; // YouTube Red
+`;
+
+const LogoText = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const NavLinks = styled.div`
+  display: flex;
+  gap: ${() => theme.spacing.small}; // Reduced gap slightly
+`;
+
+const NavLink = styled(Link)`
+  color: ${() => theme.colors.text};
+  text-decoration: none;
+  font-weight: 500;
+  padding: ${() => theme.spacing.small} ${() => theme.spacing.medium};
+  border-radius: ${() => theme.borderRadius};
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: ${() => theme.colors.white};
+  }
+`;
+
+const CTAButton = styled(Link)<{ $primary?: boolean }>`
+  background-color: ${({ $primary = true }) => $primary ? theme.colors.primary : 'transparent'};
+  color: ${() => theme.colors.white};
+  padding: calc(${() => theme.spacing.small} + 2px) calc(${() => theme.spacing.large}); // Slightly larger padding
+  border-radius: ${() => theme.borderRadius};
+  border: 1px solid ${({ $primary = true }) => $primary ? theme.colors.primary : theme.colors.border};
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex; // Align icon and text
+  align-items: center;
+  gap: ${() => theme.spacing.small};
+
+  &:hover {
+    background-color: ${({ $primary = true }) => $primary ? theme.colors.primaryHover : `rgba(255, 255, 255, 0.1)`};
+    border-color: ${({ $primary = true }) => $primary ? theme.colors.primaryHover : theme.colors.primary};
+    transform: translateY(-2px); // Subtle lift effect
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const NavbarCTA = styled(CTAButton)`
+    padding: ${() => theme.spacing.small} ${() => theme.spacing.medium}; // Smaller padding for navbar button
+`;
+
+const MainContent = styled.main`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+// --- Hero Section ---
+
+const HeroSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 100px ${() => theme.spacing.large} 80px; // Increased padding
+  // More subtle gradient, less dark at the top
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.9) 0%, ${() => theme.colors.background} 100%);
+  width: 100%; // Ensure full width
+`;
+
+const HeroTitle = styled.h2`
+  font-size: clamp(2.5rem, 6vw, 3.8rem); // Responsive font size
+  font-weight: 700; // Bold
+  margin-bottom: ${() => theme.spacing.medium};
+  color: ${() => theme.colors.white};
+  max-width: 900px; // Wider max-width
+  line-height: 1.2;
+  letter-spacing: -0.5px; // Tighter letter spacing
+`;
+
+const HeroSubtitle = styled.p`
+  font-size: clamp(1rem, 2.5vw, 1.25rem); // Responsive font size
+  color: ${() => theme.colors.text}; // Slightly brighter text?
+  margin-bottom: ${() => theme.spacing.large};
+  max-width: 700px; // Wider max-width
+  line-height: 1.7; // Increased line height
+`;
+
+const HeroCTAWrapper = styled.div`
+    margin-top: ${() => theme.spacing.medium};
     display: flex;
+    gap: ${() => theme.spacing.medium};
     align-items: center;
-    height: 100%;
-    ${({ $isFullScreen }) =>
-            $isFullScreen &&
-            css`
-                ${Title} {
-                    opacity: 0;
-                    pointer-events: none;
-                    width: 0;
-                    margin-left: 0;
-                }
-                ${SidebarToggleButton} {
-                    display: none;
-                }
-            `}
 `;
 
-const Title = styled.h1`
-    font-size: 1.3rem;
-    margin: 0;
-    margin-left: ${({ theme }) => theme.spacing.small};
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: #E5E7EB;
-    transition: opacity 0.2s ease-in-out, width 0.2s ease-in-out, margin-left 0.2s ease-in-out;
+const HeroImage = styled.img`
+  width: 100%;
+  max-width: 800px; // Increased max-width
+  margin-top: 60px; // Increased margin-top
+  border-radius: 12px; // Slightly larger radius
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3); // Enhanced shadow
+  border: 1px solid ${() => theme.colors.border}; // Subtle border
 `;
 
-const SidebarToggleButton = styled.button`
-    background: none;
-    border: none;
-    color: #D1D5DB;
-    font-size: 1.4rem;
-    cursor: pointer;
-    padding: 8px;
-    margin-right: ${({ theme }) => theme.spacing.small};
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-    transition: background-color 0.2s ease, opacity 0.2s ease-in-out;
-    &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
+// --- Features Section ---
+
+const FeaturesSection = styled.section`
+  padding: 80px ${() => theme.spacing.large}; // Increased padding
+  width: 100%;
+  max-width: 1200px;
+  text-align: center;
 `;
 
-const SvgLogo = styled.svg`
-    width: 30px;
-    height: 24px;
-    flex-shrink: 0;
+const SectionTitle = styled.h3`
+  font-size: clamp(1.8rem, 5vw, 2.5rem); // Responsive font size
+  font-weight: 600;
+  margin-bottom: 50px; // Increased margin
+  color: ${() => theme.colors.white};
 `;
 
-// Backdrop component
-const Backdrop = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); // Semi-transparent black
-    z-index: 1000; // Below search wrapper, above everything else
-    cursor: pointer; // Indicate it's clickable
+const FeaturesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); // Slightly larger min width
+  gap: ${() => theme.spacing.large};
 `;
 
-// New wrapper for centering the search bar in the header
-const HeaderCenterContainer = styled.div`
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 0 ${({ theme }) => theme.spacing.medium || '16px'};
-    position: relative; // Needed for z-index context if search has high z-index
-    z-index: 1001; // Ensure search container is above backdrop
+const FeatureCard = styled.div`
+  background-color: #1F2937;
+  padding: calc(${() => theme.spacing.large} + 5px); // Slightly more padding
+  border-radius: 8px; // Rounded corners
+  border: 1px solid ${() => theme.colors.border};
+  text-align: left;
+  transition: transform 0.3s ease, box-shadow 0.3s ease; // Smooth transition
+  display: flex; // Use flexbox for icon alignment
+  flex-direction: column; // Stack icon and text vertically
+
+  &:hover {
+    transform: translateY(-5px); // Lift effect on hover
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
 `;
 
-const HeaderControls = styled.div`
-    display: flex;
-    align-items: center;
-    height: 100%;
-    gap: ${({ theme }) => theme.spacing.small};
+const FeatureIconWrapper = styled.div`
+  font-size: 2rem; // Larger icon size
+  color: ${() => theme.colors.primary}; // Use primary color for icons
+  margin-bottom: ${() => theme.spacing.medium};
+  width: 50px; // Fixed width/height for icon bg
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(79, 70, 229, 0.1); // Subtle background for icon
+  border-radius: 50%; // Circular background
 `;
 
-const ControlButton = styled(SidebarToggleButton)`
-    margin-right: 0;
+const FeatureTitle = styled.h4`
+  font-size: 1.3rem; // Larger title
+  font-weight: 600;
+  margin-bottom: ${() => theme.spacing.small};
+  color: ${() => theme.colors.white};
 `;
 
-const LayoutSelect = styled.select`
-    padding: 6px 8px;
-    border: 1px solid #4B5563;
-    border-radius: 4px;
+const FeatureDescription = styled.p`
+  font-size: 1rem; // Slightly larger description
+  color: ${() => theme.colors.text};
+  line-height: 1.6; // Improved line height
+`;
+
+// --- Comparison Section ---
+
+const ComparisonSection = styled.section`
+  padding: 80px ${() => theme.spacing.large}; // Increased padding
+  background: linear-gradient(180deg, ${() => theme.colors.background} 0%, #11141d 100%); // Darker gradient
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ComparisonTable = styled.table`
+  width: 100%;
+  max-width: 900px;
+  border-collapse: separate; // Use separate for border-radius on cells
+  border-spacing: 0;
+  margin-top: 40px; // Increased margin
+  background-color: #1F2937; // Darker background for table
+  border-radius: 8px; // Rounded corners for table
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+
+  th, td {
+    padding: ${() => theme.spacing.medium} ${() => theme.spacing.large}; // More padding
+    text-align: left;
+    border-bottom: 1px solid ${() => theme.colors.border};
+    vertical-align: middle; // Align content vertically
+  }
+
+  th {
     background-color: #374151;
-    color: #F3F4F6;
-    font-size: 0.8rem;
-    outline: none;
-    cursor: pointer;
+    color: ${() => theme.colors.white};
+    font-weight: 600;
+    font-size: 1.1rem; // Slightly larger header font
+  }
 
-    &:focus {
-        border-color: ${({ theme }) => theme.colors.primary};
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+   // Remove bottom border for last row
+   tbody tr:last-child td {
+     border-bottom: none;
+   }
+
+  // Style first column (Feature names)
+  td:first-child {
+    font-weight: 500;
+    color: ${() => theme.colors.white};
+    width: 50%; // Allocate more space for feature names
+  }
+
+  td {
+    color: ${() => theme.colors.text};
+    text-align: center;
+  }
+
+  // Highlight Premium column
+  th:nth-child(3),
+  td:nth-child(3) {
+    background-color: rgba(79, 70, 229, 0.05); // Subtle premium bg highlight
+  }
+
+
+  .icon-cell {
+    font-size: 1.5rem; // Larger icons
+  }
+
+  .check {
+    color: #10B981; // Green
+  }
+
+  .cross {
+    color: #EF4444; // Red
+  }
+
+   .premium-icon {
+      color: #F59E0B; // Amber/Gold for Premium
+      margin-left: 8px; // More space for crown
+      vertical-align: middle;
     }
+
+   .future-span {
+       font-size: 0.85rem;
+       font-style: italic;
+       opacity: 0.8;
+   }
 `;
 
-const FullScreenButton = styled(ControlButton)``;
-const MuteButton = styled(ControlButton)``;
-const PlayPauseButton = styled(ControlButton)``;
-
-const MainContent = styled.main<{ $isFullScreen: boolean }>`
-    display: flex;
-    flex-grow: 1;
-    overflow: hidden;
-    height: ${({ $isFullScreen }) => ($isFullScreen ? 'calc(100vh - 40px)' : 'calc(100vh - 60px)')};
-    transition: height 0.2s ease-in-out;
-`;
-
-const ContentWrapper = styled.div`
-    flex-grow: 1;
-    display: flex;
-    overflow: hidden;
-`;
-
-const AddCellButton = styled(ControlButton)<{ disabled?: boolean }>`
-    opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
-    cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
-
-    &:hover {
-        background-color: ${({ disabled, theme }) => (disabled ? 'none' : 'rgba(255, 255, 255, 0.1)')};
-    }
-`;
-
-const ResetLayoutButton = styled(ControlButton)`
-    // Özel stil gerekirse buraya eklenebilir
-`;
-
-const YoutubeSearchWrapper = styled.div`
-    padding: 0;
-    position: relative;
-    max-width: 600px;
-    width: 100%; 
-`;
-
-const YoutubeSearchInputContainer = styled.div`
-    display: flex;
-    align-items: center;
-    width: 100%;
-    position: relative;
-    z-index: 1002;
-    
-    background-color: #121212; 
-    border: 1px solid #4B5563;
-    border-radius: 20px; 
-    overflow: hidden;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease; 
-
-    &:focus-within {
-      border-color: ${({ theme }) => theme.colors.primary || '#6366f1'};
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
-    }
-`;
-
-// Keyframes for the loading animation
-const loadingAnimation = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-// Styled component for the loading indicator
-const SearchLoadingIndicator = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, rgba(55, 65, 81, 0.2), rgba(99, 102, 241, 0.3), rgba(55, 65, 81, 0.2));
-    background-size: 200% 100%;
-    animation: ${loadingAnimation} 1.8s linear infinite;
-    z-index: 0;
-    pointer-events: none;
-`;
-
-const YoutubeSearchInput = styled.input`
-    flex-grow: 1;
-    padding: 8px 15px 8px 15px;
-    height: 36px;
-    border: none;
-    background-color: transparent;
-    color: #F3F4F6;
+const ComparisonFooterText = styled.p`
     font-size: 0.9rem;
-    outline: none;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 1;
+    margin-top: ${() => theme.spacing.medium};
+    color: ${() => theme.colors.text};
+    opacity: 0.8;
+    max-width: 900px;
+    text-align: center;
 `;
 
-const ClearYoutubeSearchButton = styled.button`
-    position: absolute;
-    right: 55px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #9CA3AF;
-    cursor: pointer;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    font-size: 0.8rem;
-    z-index: 2;
+const PremiumCTAWrapper = styled.div`
+    margin-top: ${() => theme.spacing.large};
+`;
 
+// --- Footer ---
+
+const Footer = styled.footer`
+  padding: ${() => theme.spacing.large} ${() => theme.spacing.large}; // More padding
+  background-color: #111827; // Darker background
+  border-top: 1px solid ${() => theme.colors.border};
+  text-align: center;
+  color: ${() => theme.colors.text};
+  font-size: 0.9rem;
+
+  a {
+    color: ${() => theme.colors.primary};
+    text-decoration: none;
+    margin: 0 ${() => theme.spacing.small};
+    transition: color 0.2s ease;
     &:hover {
-        color: #F3F4F6;
+      text-decoration: underline;
+      color: ${() => theme.colors.primaryHover};
     }
+  }
 `;
 
-const YoutubeSearchButton = styled.button`
-    padding: 0 16px;
-    height: 36px;
-    border: none;
-    border-left: 1px solid #4B5563;
-    background-color: #313131;
-    color: #F3F4F6;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    transition: background-color 0.2s ease;
-    box-sizing: border-box;
-    z-index: 1;
-    flex-shrink: 0;
-    border-radius: 0 19px 19px 0;
+// --- Data (Add Icons) ---
 
-    &:hover {
-        background-color: #4d4d4d;
-    }
-`;
+const features = [
+  { icon: FaColumns, title: "Multi-Stream Viewing", description: "Watch multiple YouTube streams simultaneously in one clean interface." },
+  { icon: FaThLarge, title: "Flexible Grid Layouts", description: "Easily arrange your streams in various grid configurations to suit your needs." },
+  { icon: FaListUl, title: "Save Channels", description: "Add and manage your favorite channels in a personalized list for quick access." },
+  { icon: FaSave, title: "Save Custom Layouts (Premium)", description: "Create your perfect setup and save it to load instantly with a single click." }, // Example Premium feature highlight
+];
 
-const SettingsButton = styled(ControlButton)``;
+const comparisonData = [
+  { feature: "Basic Multi-Stream Viewing", free: true, premium: true },
+  { feature: "Standard Grid Layouts (e.g., 2x2)", free: true, premium: true },
+  { feature: "Channel Save Limit (e.g., 20)", free: true, premium: false },
+  { feature: "Grid Cell Limit (e.g., 12)", free: true, premium: false },
+  { feature: "Advanced Grid Layouts (3x3, 4x3+)", free: false, premium: true },
+  { feature: "Save/Load Custom Layouts", free: false, premium: true },
+  { feature: "Channel Folders/Grouping", free: false, premium: true },
+  { feature: "Increased/Unlimited Save Limits", free: false, premium: true },
+  { feature: "Cross-Device Sync", free: false, premium: "Soon" }, // Changed "Gelecek" to "Soon"
+  { feature: "Multiple Profiles/Workspaces", free: false, premium: "Soon" }, // Changed "Gelecek" to "Soon"
+  { feature: "Ad-Free Experience*", free: false, premium: true },
+];
 
-// Buton grupları için wrapper
-const ButtonGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({ theme }) => theme.spacing.small || '8px'};
-`;
+// --- Page Component ---
 
-// Gruplar arası ayırıcı
-const Separator = styled.div`
-    width: 1px;
-    height: 24px;
-    background-color: #4B5563;
-    margin: 0 ${({ theme }) => theme.spacing.medium || '16px'};
-`;
+export default function LandingPage() {
+  return (
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <LandingPageWrapper>
+        <Navbar>
+          <LogoContainer>
+            <LogoIcon />
+            <LogoText>TubeTopia</LogoText>
+          </LogoContainer>
+          <NavLinks>
+            <NavLink href="#features">Features</NavLink>
+            <NavLink href="#pricing">Plans</NavLink>
+             {/* Add other links if needed */}
+          </NavLinks>
+          <NavbarCTA href="/watch" $primary={false}>
+              Open App
+              <FaSignInAlt />
+          </NavbarCTA>
+        </Navbar>
 
-const getLayoutName = (cols: number): string => {
-    const config = gridLayoutConfig[cols];
-    if (!config) return `${cols} Columns`;
-    const rows = config.rows || Math.ceil(config.cells / cols);
-    const calculatedCols = Math.ceil(config.cells / rows);
-    return `${rows}x${calculatedCols} Grid`;
-};
+        <MainContent>
+          <HeroSection>
+            <HeroTitle>All Your YouTube Streams, One Screen</HeroTitle>
+            <HeroSubtitle>
+              Watch, manage, and never miss a moment from multiple YouTube streams simultaneously with TubeTopia.
+              Flexible, powerful, and completely under your control.
+            </HeroSubtitle>
+            <HeroCTAWrapper>
+                <CTAButton href="/watch">
+                    Start Free Now
+                    <FaRocket />
+                 </CTAButton>
+                 {/* Optional Secondary CTA */}
+                 {/* <CTAButton href="#pricing" $primary={false}>View Plans</CTAButton> */}
+             </HeroCTAWrapper>
+             {/* Placeholder image - replace with actual screenshot/graphic */}
+            <HeroImage src="/placeholder-screenshot.png" alt="TubeTopia Application Interface Multi-Stream View" />
+          </HeroSection>
 
-export default function Home() {
-    const { isChannelListVisible, toggleChannelListVisibility } = useUIStore();
-    const {
-        layout,
-        gridCols,
-        setGridCols,
-        resetCurrentLayout,
-        addEmptyCell,
-    }: GridState = useGridStore();
-    const { 
-        isGloballyMuted,
-        isPlayingGlobally,
-        toggleGlobalMute,
-        toggleGlobalPlayPause
-    }: PlayerState = usePlayerStore();
-    const {
-        fetchResults,
-        setSearchTerm,
-        clearResults,
-        results,
-        isLoading,
-        error,
-        currentSearchTerm
-    }: SearchState = useSearchStore();
-    const [isFullScreen, setIsFullScreen] = useState(false);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
-    const searchInputRef = useRef<HTMLInputElement>(null);
+          <FeaturesSection id="features">
+            <SectionTitle>Take Control</SectionTitle>
+            <FeaturesGrid>
+              {features.map((feature, index) => (
+                <FeatureCard key={index}>
+                   <FeatureIconWrapper>
+                      <feature.icon />
+                    </FeatureIconWrapper>
+                  <FeatureTitle>{feature.title}</FeatureTitle>
+                  <FeatureDescription>{feature.description}</FeatureDescription>
+                </FeatureCard>
+              ))}
+            </FeaturesGrid>
+          </FeaturesSection>
 
-    const isMaxCells = useMemo(() => {
-        const config = gridLayoutConfig[gridCols];
-        return config ? layout.length >= config.cells : true;
-    }, [layout, gridCols]);
+          <ComparisonSection id="pricing">
+            <SectionTitle>Choose Your Plan</SectionTitle>
+            <ComparisonTable>
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Free</th>
+                  <th>Premium <FaCrown className="premium-icon" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonData.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.feature.replace('*$','')}</td> {/* Keep removal of asterisk */}
+                    <td className="icon-cell">
+                      {item.free === true ? <FaCheckCircle className="check" /> : <FaTimesCircle className="cross" />}
+                    </td>
+                    <td className="icon-cell">
+                      {item.premium === true ? <FaCheckCircle className="check" /> :
+                       item.premium === false ? <FaTimesCircle className="cross" /> :
+                       item.premium === "Soon" ? <span className="future-span">Soon</span> : ''} {/* Changed "Gelecek" to "Soon" */}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </ComparisonTable>
+             <ComparisonFooterText>
+                *Ads are not currently present in the free version. If added in the future, the Premium version will remain ad-free.
+                Features marked as "Soon" are under development.
+             </ComparisonFooterText>
+             <PremiumCTAWrapper>
+                 <CTAButton href="/#"> {/* Link to signup/payment page later */}
+                     Go Premium
+                     <FaRocket />
+                 </CTAButton>
+             </PremiumCTAWrapper>
+          </ComparisonSection>
 
-    const handleFullScreenChange = useCallback(() => {
-        setIsFullScreen(!!document.fullscreenElement);
-    }, []);
+        </MainContent>
 
-    const handleYoutubeSearch = () => {
-        const term = currentSearchTerm.trim();
-        if (term) {
-            fetchResults(term);
-            setIsSearchDropdownOpen(true);
-        } else {
-            clearResults();
-            setIsSearchDropdownOpen(false);
-        }
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const term = e.target.value;
-        setSearchTerm(term);
-        if (term.trim() === '') {
-            clearResults();
-            setIsSearchDropdownOpen(false);
-        } else {
-            setIsSearchDropdownOpen(true);
-        }
-    };
-
-    const handleSearchKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
-            handleYoutubeSearch();
-        }
-    };
-
-    const handleInputFocus = () => {
-        if (error === 'API Key missing' && useApiKeyStore.getState().apiKey) {
-            clearResults();
-        }
-        if (currentSearchTerm || results.length > 0 || (error && error !== 'API Key missing')) {
-             setIsSearchDropdownOpen(true);
-        } else if (error === 'API Key missing' && !useApiKeyStore.getState().apiKey) {
-             setIsSearchDropdownOpen(true);
-        }
-    };
-
-    const closeSearchDropdown = useCallback(() => {
-        setIsSearchDropdownOpen(false);
-    }, []);
-
-    const handleClearYoutubeSearch = () => {
-        setSearchTerm('');
-        clearResults();
-        setIsSearchDropdownOpen(false);
-        searchInputRef.current?.focus();
-    };
-
-    const toggleFullScreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.error(`Error attempting full-screen: ${err.message} (${err.name})`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        }
-    };
-
-    useEffect(() => {
-        document.addEventListener('fullscreenchange', handleFullScreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-    }, [handleFullScreenChange]);
-
-    return (
-        <ThemeProvider theme={theme}>
-            <GlobalStyles />
-            {/* Conditionally render Backdrop */} 
-            {isSearchDropdownOpen && <Backdrop onClick={closeSearchDropdown} />} 
-            <AppWrapper>
-                <Header $isFullScreen={isFullScreen}>
-                    <HeaderLeft $isFullScreen={isFullScreen}>
-                        {!isFullScreen && (
-                            <SidebarToggleButton onClick={toggleChannelListVisibility} title="Toggle Channel List">
-                                <FaBars />
-                            </SidebarToggleButton>
-                        )}
-                        <SvgLogo viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </SvgLogo>
-                        <Title>TubeTopia</Title>
-                    </HeaderLeft>
-
-                    <HeaderCenterContainer>
-                        <YoutubeSearchWrapper>
-                            <YoutubeSearchInputContainer>
-                                {isLoading && <SearchLoadingIndicator />}
-                                <YoutubeSearchInput
-                                    ref={searchInputRef}
-                                    type="text"
-                                    placeholder="Search YouTube..."
-                                    value={currentSearchTerm}
-                                    onChange={handleInputChange}
-                                    onKeyPress={handleSearchKeyPress}
-                                    onFocus={handleInputFocus}
-                                />
-                                {currentSearchTerm && !isLoading && (
-                                    <ClearYoutubeSearchButton onClick={handleClearYoutubeSearch} title="Clear Search">
-                                        <FaTimes />
-                                    </ClearYoutubeSearchButton>
-                                )}
-                                <YoutubeSearchButton onClick={handleYoutubeSearch} title="Search YouTube">
-                                    <FaSearch />
-                                </YoutubeSearchButton>
-                            </YoutubeSearchInputContainer>
-                            {isSearchDropdownOpen && (
-                                <YoutubeSearchResultsDropdown
-                                    inputRef={searchInputRef} 
-                                    onClose={closeSearchDropdown}
-                                />
-                            )}
-                        </YoutubeSearchWrapper>
-                    </HeaderCenterContainer>
-
-                    <HeaderControls>
-                        <ButtonGroup>
-                            <LayoutSelect onChange={(e) => setGridCols(Number(e.target.value))} value={gridCols}>
-                                {Object.keys(gridLayoutConfig).map((key) => (
-                                    <option key={key} value={key}>{getLayoutName(Number(key))}</option>
-                                ))}
-                            </LayoutSelect>
-                            <AddCellButton onClick={addEmptyCell} title="Add Cell" disabled={isMaxCells}>
-                                <FaPlus />
-                            </AddCellButton>
-                            <ResetLayoutButton onClick={resetCurrentLayout} title="Reset Grid Layout">
-                                <FaSyncAlt />
-                            </ResetLayoutButton>
-                        </ButtonGroup>
-                        <Separator />
-                        <ButtonGroup>
-                            <MuteButton onClick={toggleGlobalMute} title={isGloballyMuted ? "Unmute All" : "Mute All"}>
-                                {isGloballyMuted ? <FaVolumeMute /> : <FaVolumeUp />}
-                            </MuteButton>
-                            <PlayPauseButton onClick={toggleGlobalPlayPause} title={isPlayingGlobally ? "Pause All" : "Resume All"}>
-                                {isPlayingGlobally ? <FaPause /> : <FaPlay />}
-                            </PlayPauseButton>
-                        </ButtonGroup>
-                        <Separator />
-                        <ButtonGroup>
-                            <FullScreenButton onClick={toggleFullScreen} title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}>
-                                {isFullScreen ? <FaCompress /> : <FaExpand />}
-                            </FullScreenButton>
-                            <SettingsButton onClick={() => setIsSettingsModalOpen(true)} title="Settings">
-                                <FaCog />
-                            </SettingsButton>
-                        </ButtonGroup>
-                    </HeaderControls>
-                </Header>
-                <MainContent $isFullScreen={isFullScreen}>
-                    <Sidebar />
-                    <ContentWrapper>
-                        <GridContainer isFullscreenActive={isFullScreen} />
-                        <ChatSidebar />
-                    </ContentWrapper>
-                </MainContent>
-                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
-            </AppWrapper>
-        </ThemeProvider>
-    );
-}
+        <Footer>
+          © {new Date().getFullYear()} TubeTopia. All rights reserved. |
+          <Link href="/terms">Terms of Service</Link> |
+          <Link href="/privacy">Privacy Policy</Link>
+           {/* TODO: Create these pages or remove links */}
+        </Footer>
+      </LandingPageWrapper>
+    </ThemeProvider>
+  );
+} 
