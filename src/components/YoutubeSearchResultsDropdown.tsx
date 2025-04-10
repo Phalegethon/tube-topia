@@ -99,21 +99,29 @@ const ActionButton = styled.button`
     min-width: 60px; // Butonların minimum genişliği
     justify-content: center;
 
-    &:hover {
+    &:disabled { // Add styles for disabled state
+        cursor: not-allowed;
+        opacity: 0.6;
+        background-color: transparent; // Keep background transparent
+        border-color: #555;
+        color: #888; // Dim the text color
+    }
+
+    &:hover:not(:disabled) { // Apply hover only if not disabled
         background-color: #444;
         border-color: #777;
         color: #fff;
     }
 
-    &.save:hover {
+    &.save:hover:not(:disabled) { // Apply hover only if not disabled
         background-color: #3b82f6; // Mavi hover
         border-color: #3b82f6;
     }
-    &.watch:hover {
+    &.watch:hover:not(:disabled) { // Apply hover only if not disabled
          background-color: #10b981; // Yeşil hover
          border-color: #10b981;
     }
-    &.open-youtube:hover {
+    &.open-youtube:hover:not(:disabled) { // Apply hover only if not disabled
          background-color: #c4302b; // YouTube kırmızısı hover
          border-color: #c4302b;
     }
@@ -151,8 +159,8 @@ const YoutubeSearchResultsDropdown: React.FC<YoutubeSearchResultsDropdownProps> 
     error,
     currentSearchTerm,
     assignResultToGrid,
-    clearResults,
   } = useSearchStore();
+  const { channels } = useChannelStore(); // Get channels from the store
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { openSettingsModal } = useUIStore();
 
@@ -239,30 +247,40 @@ const YoutubeSearchResultsDropdown: React.FC<YoutubeSearchResultsDropdownProps> 
            </InfoMessage>
       )}
       {!isLoading && !error && results.length > 0 && (
-        results.map((item) => (
-          <ResultItem key={item.id}>
-            <Thumbnail src={item.thumbnail} alt={item.title} />
-            <Title>{item.title}</Title>
-            {item.kind === 'youtube#channel' ? (
-              <ActionButton 
-                className="open-youtube" 
-                onClick={() => window.open(`https://www.youtube.com/channel/${item.id}`, '_blank')}
-                title="Open channel on YouTube"
-              >
-                <FaExternalLinkAlt /> YouTube'da Aç
-              </ActionButton>
-            ) : (
-              <>
-                <ActionButton className="save" onClick={() => handleSave(item)} title="Save to Channel List">
-                    <FaSave /> Save
+        results.map((item) => {
+          const isSaved = channels.some(channel => channel.id === item.id); // Check if item is saved
+
+          return (
+            <ResultItem key={item.id}>
+              <Thumbnail src={item.thumbnail} alt={item.title} />
+              <Title>{item.title}</Title>
+              {item.kind === 'youtube#channel' ? (
+                <ActionButton 
+                  className="open-youtube" 
+                  onClick={() => window.open(`https://www.youtube.com/channel/${item.id}`, '_blank')}
+                  title="Open channel on YouTube"
+                >
+                  <FaExternalLinkAlt /> YouTube'da Aç
                 </ActionButton>
-                <ActionButton className="watch" onClick={() => handleWatch(item)} title="Watch in selected grid cell">
+              ) : (
+                <>
+                  {isSaved ? (
+                    <ActionButton className="saved" title="Already saved" disabled>
+                       Saved
+                    </ActionButton>
+                  ) : (
+                    <ActionButton className="save" onClick={() => handleSave(item)} title="Save to Channel List">
+                      <FaSave /> Save
+                    </ActionButton>
+                  )}
+                  <ActionButton className="watch" onClick={() => handleWatch(item)} title="Watch in selected grid cell">
                     <FaPlay /> Watch
-                </ActionButton>
-              </>
-            )}
-          </ResultItem>
-        ))
+                  </ActionButton>
+                </>
+              )}
+            </ResultItem>
+          )
+        })
       )}
     </DropdownWrapper>
   );
