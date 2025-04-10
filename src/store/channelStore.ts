@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import axios from 'axios'; // axios import edildi
 import useGridStore from '@/store/gridStore'; // gridStore import edildi
 import useApiKeyStore from '@/store/apiKeyStore'; // ApiKeyStore import edildi
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'react-toastify'; // toast import edildi
 
 // Kanal tiplerini tanımla
 export type ChannelType = 'channel' | 'playlist' | 'live' | 'video';
@@ -127,15 +129,15 @@ const useChannelStore = create<ChannelState>()(
       addChannel: async (newChannelData): Promise<boolean> => {
          const extracted = extractIdAndType(newChannelData.url);
          if (!extracted) {
-             alert(`Invalid YouTube URL or ID format: ${newChannelData.url}`);
+             toast.error(`Invalid YouTube URL or ID format: ${newChannelData.url}`);
              console.error("Could not extract ID or type from URL:", newChannelData.url);
-             return false; 
+             return false;
          }
 
-         if (get().channels.some(channel => channel.id === extracted.id)) {
-            alert(`Channel with ID ${extracted.id} already exists.`);
-            console.warn(`Channel with ID ${extracted.id} already exists.`);
-            return false; 
+         const channels = get().channels;
+         if (channels.some(channel => channel.id === extracted.id)) {
+            toast.warn(`Channel with ID ${extracted.id} already exists.`);
+            return false;
          }
 
          let channelName = newChannelData.name || extracted.name;
@@ -152,7 +154,7 @@ const useChannelStore = create<ChannelState>()(
              type: newChannelData.type || extracted.type,
          };
 
-         set({ channels: [...get().channels, newChannel] });
+         set({ channels: [...channels, newChannel] });
          return true; 
       },
       removeChannel: (id) => {

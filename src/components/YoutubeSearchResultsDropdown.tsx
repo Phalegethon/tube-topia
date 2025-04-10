@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import useSearchStore from '@/store/searchStore';
 import useChannelStore, { ChannelType } from '@/store/channelStore';
 import { FaSpinner, FaExclamationTriangle, FaSave, FaPlay, FaExternalLinkAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const DropdownWrapper = styled.div`
   position: absolute;
@@ -155,7 +156,7 @@ const YoutubeSearchResultsDropdown: React.FC<YoutubeSearchResultsDropdownProps> 
      }
      if(channelType) {
          const success = await addChannel({ url, name: item.title, type: channelType });
-         if(success) alert(`${item.title} saved!`);
+         if(success) toast.success(`${item.title} saved!`);
      }
   }
 

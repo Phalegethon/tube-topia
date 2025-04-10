@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import styled, { DefaultTheme } from 'styled-components';
 import useChannelStore from '@/store/channelStore';
 import useGridStore from '@/store/gridStore';
 import { FaPlayCircle, FaTimes, FaTv } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import ConfirmationModal from './ConfirmationModal';
 
 const ListWrapper = styled.div`
   display: flex;
@@ -117,6 +119,7 @@ const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
       layout, 
       cellContents 
     } = useGridStore();
+  const [channelToRemove, setChannelToRemove] = useState<string | null>(null);
 
   const playingChannelIds = new Set(Object.values(cellContents).filter(Boolean) as string[]);
 
@@ -129,8 +132,21 @@ const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
       if (firstEmptyCell) {
           setCellContent(firstEmptyCell.i, channelId);
       } else {
-         alert('No empty grid cells available. Clear a cell or change the layout.');
+         toast.error('No empty grid cells available. Clear a cell or change the layout.');
       }
+    }
+  };
+
+  const handleRemoveClick = (e: React.MouseEvent, channelId: string) => {
+    e.stopPropagation();
+    setChannelToRemove(channelId);
+  };
+
+  const confirmRemoveChannel = () => {
+    if (channelToRemove) {
+        removeChannel(channelToRemove);
+        toast.info(`Channel removed.`);
+        setChannelToRemove(null);
     }
   };
 
@@ -164,12 +180,7 @@ const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
               </ChannelDetails>
               <RemoveButton 
                 title={`Remove ${channel.name || channel.id}`}
-                onClick={(e) => { 
-                  e.stopPropagation();
-                  if (window.confirm(`Are you sure you want to remove channel: ${channel.name || channel.id}?`)) {
-                  removeChannel(channel.id);
-                  }
-                }}
+                onClick={(e) => handleRemoveClick(e, channel.id)}
               >
                 <FaTimes />
               </RemoveButton>
@@ -177,6 +188,16 @@ const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
           );
         })
       )}
+
+      <ConfirmationModal
+        isOpen={!!channelToRemove}
+        onClose={() => setChannelToRemove(null)}
+        onConfirm={confirmRemoveChannel}
+        title="Remove Channel?"
+        message={`Are you sure you want to remove channel: ${channels.find(c => c.id === channelToRemove)?.name || channelToRemove}?`}
+        confirmText="Remove"
+        confirmButtonVariant="danger"
+      />
     </ListWrapper>
   );
 };

@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import useApiKeyStore from '@/store/apiKeyStore';
 import { FaTimes, FaSave, FaUndo } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import ConfirmationModal from './ConfirmationModal';
 
 // Props for the modal
 interface SettingsModalProps {
@@ -149,6 +151,7 @@ const HelperText = styled.p`
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { apiKey, setApiKey } = useApiKeyStore();
   const [localApiKey, setLocalApiKey] = useState(apiKey || '');
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Update local state if store changes (e.g., on initial load)
   useEffect(() => {
@@ -158,17 +161,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // Handle API Key Save
   const handleSaveApiKey = () => {
     setApiKey(localApiKey);
-    alert('API Key saved!');
+    toast.success('API Key saved!');
     onClose(); // Close modal after save
   };
 
   // Handle Reset All Settings
   const handleResetSettings = () => {
-    if (window.confirm("Are you sure you want to reset all settings? This will remove all saved channels and reset the layout.")) {
-        localStorage.clear();
-        window.location.reload();
-        // No need to close modal as page reloads
-    }
+    setIsConfirmModalOpen(true);
+  };
+
+  // Gerçek reset işlemini yapan fonksiyon
+  const confirmReset = () => {
+      localStorage.clear();
+      window.location.reload();
+      // Modal zaten ConfirmationModal içinde kapanacak
   };
 
   // Prevent rendering if not open
@@ -215,6 +221,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </SettingsSection>
 
       </ModalContent>
+
+      {/* Onay Modalı */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmReset}
+        title="Reset Settings?"
+        message="Are you sure you want to reset all settings? This will remove all saved channels, API key, and reset the layout to default."
+        confirmText="Reset"
+        confirmButtonVariant="danger"
+      />
     </ModalOverlay>
   );
 };

@@ -3,6 +3,7 @@ import axios from 'axios';
 import useChannelStore, { ChannelType } from './channelStore';
 import useGridStore from './gridStore';
 import useApiKeyStore from './apiKeyStore';
+import { toast } from 'react-toastify';
 
 // YouTube API Arama Sonucu Tipi (Basitleştirilmiş)
 // Export SearchResultItem if needed elsewhere
@@ -82,7 +83,7 @@ const useSearchStore = create<SearchState>((set, get) => ({
     const { addChannel, channels } = useChannelStore.getState();
 
     if (!activeGridItemId) {
-      alert('Please select a grid cell first by clicking on it.');
+      toast.info('Please select a grid cell first by clicking on it.');
       return;
     }
 
