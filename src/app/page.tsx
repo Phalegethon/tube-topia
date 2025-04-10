@@ -463,7 +463,7 @@ export default function Home() {
                                 ))}
                             </LayoutSelect>
                             <AddCellButton onClick={addEmptyCell} title="Add Cell" disabled={isMaxCells}>
-                                +
+                                <FaPlus />
                             </AddCellButton>
                             <ResetLayoutButton onClick={resetCurrentLayout} title="Reset Grid Layout">
                                 <FaSyncAlt />
