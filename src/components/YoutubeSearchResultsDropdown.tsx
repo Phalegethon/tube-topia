@@ -8,22 +8,23 @@ import { FaSpinner, FaExclamationTriangle, FaSave, FaPlay, FaExternalLinkAlt } f
 
 const DropdownWrapper = styled.div`
   position: absolute;
-  top: calc(100% + 2px); // Input ile küçük bir boşluk
-  left: 0; 
-  width: 100%; // Parent (YoutubeSearchWrapper) genişliğini al
-  background-color: #282828; 
-  border: 1px solid #4B5563;
-  /* border-top: none; kaldırıldı */
-  border-radius: 8px; // Alt kenarlar yuvarlak değil artık
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 900; 
-  max-height: 350px; // Yükseklik azaltıldı
+  top: calc(100% + 2px); // Position below the input container
+  left: 0;
+  width: 100%; 
+  background-color: #282828; // Restore background
+  border: 1px solid #4B5563; // Restore border
+  border-top: none; // No top border as it connects visually
+  border-radius: 0 0 8px 8px; // Round bottom corners
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); // Restore shadow
+  z-index: 1003; // Ensure it's above backdrop and input container wrapper
+  
+  max-height: 350px; 
   overflow-y: auto;
-  padding: 4px 0; // Dikey padding azaltıldı
+  padding: 4px 0; 
 
   /* Scrollbar stilleri */
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: #282828; }
+  &::-webkit-scrollbar-track { background: #282828; } // Restore background
   &::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
 `;
 

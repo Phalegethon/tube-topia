@@ -34,8 +34,8 @@ const Header = styled.header<{ $isFullScreen: boolean }>`
     background-color: #1F2937;
     color: #F3F4F6;
     display: flex;
-    align-items: center;
-    padding: 0 ${({ theme }) => theme.spacing.medium || "16px"};
+    align-items: flex-start;
+    padding: 8px ${({ theme }) => theme.spacing.medium || "16px"};
     flex-shrink: 0;
     justify-content: space-between;
     border-bottom: 1px solid #374151;
@@ -45,6 +45,7 @@ const Header = styled.header<{ $isFullScreen: boolean }>`
 const HeaderLeft = styled.div<{ $isFullScreen: boolean }>`
     display: flex;
     align-items: center;
+    height: 100%;
     ${({ $isFullScreen }) =>
             $isFullScreen &&
             css`
@@ -93,9 +94,33 @@ const SvgLogo = styled.svg`
     flex-shrink: 0;
 `;
 
+// Backdrop component
+const Backdrop = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); // Semi-transparent black
+    z-index: 1000; // Below search wrapper, above everything else
+    cursor: pointer; // Indicate it's clickable
+`;
+
+// New wrapper for centering the search bar in the header
+const HeaderCenterContainer = styled.div`
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    padding: 0 ${({ theme }) => theme.spacing.medium || '16px'};
+    position: relative; // Needed for z-index context if search has high z-index
+    z-index: 1001; // Ensure search container is above backdrop
+`;
+
 const HeaderControls = styled.div`
     display: flex;
     align-items: center;
+    height: 100%;
     gap: ${({ theme }) => theme.spacing.small};
 `;
 
@@ -151,14 +176,10 @@ const ResetLayoutButton = styled(ControlButton)`
 `;
 
 const YoutubeSearchWrapper = styled.div`
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 ${ ({ theme }) => theme.spacing.large || '24px' };
+    padding: 0;
     position: relative;
     max-width: 600px;
-    margin: 0 auto;
+    width: 100%; 
 `;
 
 const YoutubeSearchInputContainer = styled.div`
@@ -166,11 +187,13 @@ const YoutubeSearchInputContainer = styled.div`
     align-items: center;
     width: 100%;
     position: relative;
-    overflow: hidden;
-    border-radius: 20px;
+    z-index: 1002;
+    
+    background-color: #121212; 
     border: 1px solid #4B5563;
-    background-color: #121212;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 20px; 
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease; 
 
     &:focus-within {
       border-color: ${({ theme }) => theme.colors.primary || '#6366f1'};
@@ -191,7 +214,7 @@ const SearchLoadingIndicator = styled.div`
     left: 0;
     height: 100%;
     width: 100%;
-    border-radius: 20px;
+    border-radius: inherit;
     background: linear-gradient(90deg, rgba(55, 65, 81, 0.2), rgba(99, 102, 241, 0.3), rgba(55, 65, 81, 0.2));
     background-size: 200% 100%;
     animation: ${loadingAnimation} 1.8s linear infinite;
@@ -309,7 +332,6 @@ export default function Home() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const searchWrapperRef = useRef<HTMLDivElement>(null);
 
     const isMaxCells = useMemo(() => {
         const config = gridLayoutConfig[gridCols];
@@ -382,22 +404,11 @@ export default function Home() {
         return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
     }, [handleFullScreenChange]);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target as Node)) {
-                closeSearchDropdown();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [closeSearchDropdown]);
-
     return (
         <ThemeProvider theme={theme}>
             <GlobalStyles />
+            {/* Conditionally render Backdrop */} 
+            {isSearchDropdownOpen && <Backdrop onClick={closeSearchDropdown} />} 
             <AppWrapper>
                 <Header $isFullScreen={isFullScreen}>
                     <HeaderLeft $isFullScreen={isFullScreen}>
@@ -411,34 +422,38 @@ export default function Home() {
                         </SvgLogo>
                         <Title>Youtuber App</Title>
                     </HeaderLeft>
-                    <YoutubeSearchWrapper ref={searchWrapperRef}>
-                        <YoutubeSearchInputContainer>
-                            {isLoading && <SearchLoadingIndicator />}
-                            <YoutubeSearchInput
-                                ref={searchInputRef}
-                                type="text"
-                                placeholder="Search YouTube..."
-                                value={currentSearchTerm}
-                                onChange={handleInputChange}
-                                onKeyPress={handleSearchKeyPress}
-                                onFocus={handleInputFocus}
-                            />
-                            {currentSearchTerm && !isLoading && (
-                                <ClearYoutubeSearchButton onClick={handleClearYoutubeSearch} title="Clear Search">
-                                    <FaTimes />
-                                </ClearYoutubeSearchButton>
+
+                    <HeaderCenterContainer>
+                        <YoutubeSearchWrapper>
+                            <YoutubeSearchInputContainer>
+                                {isLoading && <SearchLoadingIndicator />}
+                                <YoutubeSearchInput
+                                    ref={searchInputRef}
+                                    type="text"
+                                    placeholder="Search YouTube..."
+                                    value={currentSearchTerm}
+                                    onChange={handleInputChange}
+                                    onKeyPress={handleSearchKeyPress}
+                                    onFocus={handleInputFocus}
+                                />
+                                {currentSearchTerm && !isLoading && (
+                                    <ClearYoutubeSearchButton onClick={handleClearYoutubeSearch} title="Clear Search">
+                                        <FaTimes />
+                                    </ClearYoutubeSearchButton>
+                                )}
+                                <YoutubeSearchButton onClick={handleYoutubeSearch} title="Search YouTube">
+                                    <FaSearch />
+                                </YoutubeSearchButton>
+                            </YoutubeSearchInputContainer>
+                            {isSearchDropdownOpen && (
+                                <YoutubeSearchResultsDropdown
+                                    inputRef={searchInputRef} 
+                                    onClose={closeSearchDropdown}
+                                />
                             )}
-                            <YoutubeSearchButton onClick={handleYoutubeSearch}>
-                                <FaSearch />
-                            </YoutubeSearchButton>
-                        </YoutubeSearchInputContainer>
-                        {isSearchDropdownOpen && (
-                            <YoutubeSearchResultsDropdown
-                                inputRef={searchInputRef}
-                                onClose={closeSearchDropdown}
-                            />
-                        )}
-                    </YoutubeSearchWrapper>
+                        </YoutubeSearchWrapper>
+                    </HeaderCenterContainer>
+
                     <HeaderControls>
                         <ButtonGroup>
                             <LayoutSelect onChange={(e) => setGridCols(Number(e.target.value))} value={gridCols}>
