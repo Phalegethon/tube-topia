@@ -4,8 +4,9 @@ import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import useSearchStore from '@/store/searchStore';
 import useChannelStore, { ChannelType } from '@/store/channelStore';
-import { FaSpinner, FaExclamationTriangle, FaSave, FaPlay, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaSpinner, FaExclamationTriangle, FaSave, FaPlay, FaExternalLinkAlt, FaCog } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import useUIStore from '@/store/uiStore';
 
 const DropdownWrapper = styled.div`
   position: absolute;
@@ -34,8 +35,25 @@ const LoadingSpinner = styled.div`
   /* ... rest ... */
 `;
 const ErrorMessage = styled.div`
-  padding: 15px; // Padding azaltıldı
-  /* ... rest ... */
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fca5a5; /* Hata rengi */
+  background-color: rgba(239, 68, 68, 0.1); /* Hafif kırmızı arka plan */
+  border-bottom: 1px solid #ef4444;
+
+  span {
+    flex-grow: 1;
+  }
+`;
+
+// Yeni InfoMessage stili
+const InfoMessage = styled.div`
+  padding: 15px;
+  color: #9ca3af; /* Daha nötr bir renk */
+  font-size: 0.85rem;
+  text-align: center;
 `;
 
 const ResultItem = styled.div`
@@ -101,6 +119,26 @@ const ActionButton = styled.button`
     }
 `;
 
+const SettingsLinkButton = styled.button`
+    background: none;
+    border: 1px solid #fca5a5; /* Hata rengi */
+    color: #fca5a5; /* Hata rengi */
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-flex; /* inline-block yerine flex */
+    align-items: center;
+    gap: 5px;
+    margin-left: auto; /* Sağa yasla */
+    transition: background-color 0.2s, color 0.2s;
+
+    &:hover {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #fecaca;
+    }
+`;
+
 interface YoutubeSearchResultsDropdownProps {
     inputRef: React.RefObject<HTMLInputElement | null>;
     onClose: () => void;
@@ -116,6 +154,7 @@ const YoutubeSearchResultsDropdown: React.FC<YoutubeSearchResultsDropdownProps> 
     clearResults,
   } = useSearchStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { openSettingsModal } = useUIStore();
 
   // Dışarı tıklandığında kapatma
   useEffect(() => {
@@ -175,15 +214,29 @@ const YoutubeSearchResultsDropdown: React.FC<YoutubeSearchResultsDropdownProps> 
     <DropdownWrapper ref={dropdownRef}>
       {isLoading && <LoadingSpinner><FaSpinner /></LoadingSpinner>}
       {error && (
-          <ErrorMessage>
-            <FaExclamationTriangle size="1.5em" />
-            <span>Error: {error}</span>
-          </ErrorMessage>
+        <ErrorMessage>
+          <FaExclamationTriangle size="1.5em" />
+          {error === 'API Key missing' ? (
+              <span>API Key required for search.</span>
+          ) : (
+              <span>Error: {error}</span>
+          )}
+          {error === 'API Key missing' && (
+              <SettingsLinkButton onClick={openSettingsModal}>
+                 <FaCog /> Set API Key
+              </SettingsLinkButton>
+          )}
+        </ErrorMessage>
       )}
       {!isLoading && !error && results.length === 0 && currentSearchTerm && (
-          <ErrorMessage style={{ color: '#888', padding: '15px' }}>
-                No results found for "{currentSearchTerm}"
-            </ErrorMessage>
+          <InfoMessage>
+              Press Enter or click the search button to search for "{currentSearchTerm}".
+          </InfoMessage>
+      )}
+      {!isLoading && !error && results.length === 0 && !currentSearchTerm && (
+           <InfoMessage>
+               Press Enter or click the search button to search.
+           </InfoMessage>
       )}
       {!isLoading && !error && results.length > 0 && (
         results.map((item) => (

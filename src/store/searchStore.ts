@@ -4,6 +4,7 @@ import useChannelStore, { ChannelType } from './channelStore';
 import useGridStore from './gridStore';
 import useApiKeyStore from './apiKeyStore';
 import { toast } from 'react-toastify';
+import useUIStore from './uiStore';
 
 // YouTube API Arama Sonucu Tipi (Basitleştirilmiş)
 // Export SearchResultItem if needed elsewhere
@@ -43,8 +44,15 @@ const useSearchStore = create<SearchState>((set, get) => ({
     }
     const apiKey = useApiKeyStore.getState().apiKey;
     if (!apiKey) {
-      set({ isLoading: false, error: 'YouTube API Key is not set in the sidebar.', results: [], currentSearchTerm: term });
       console.error('YouTube API Key is not set.');
+      
+      // Hata mesajını basit string olarak değiştir
+      toast.error(
+        'YouTube API Key is required for search. Please set it using the gear icon in the header.',
+        { autoClose: 5000 } // 5 saniye sonra otomatik kapat
+      );
+
+      set({ isLoading: false, results: [], currentSearchTerm: term, error: 'API Key missing' });
       return;
     }
     set({ isLoading: true, error: null, currentSearchTerm: term });
