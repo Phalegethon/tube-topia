@@ -8,7 +8,7 @@ import { FaSpinner, FaExclamationTriangle, FaSave, FaPlay, FaExternalLinkAlt } f
 
 const DropdownWrapper = styled.div`
   position: absolute;
-  top: calc(100% + 2px); // Position below the input container
+  top: calc(100% + 12px); // Position below the input container
   left: 0;
   width: 100%; 
   background-color: #282828; // Restore background
@@ -25,7 +25,7 @@ const DropdownWrapper = styled.div`
   /* Scrollbar stilleri */
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: #282828; } // Restore background
-  &::-webkit-scrollbar-thumb { background-color: #555; border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background-color: #555; border-radius: 0 0 8px 8px; }
 `;
 
 const LoadingSpinner = styled.div`

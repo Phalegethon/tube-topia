@@ -111,6 +111,7 @@ const HeaderCenterContainer = styled.div`
     flex-grow: 1;
     display: flex;
     justify-content: center;
+    align-items: center;
     height: 100%;
     padding: 0 ${({ theme }) => theme.spacing.medium || '16px'};
     position: relative; // Needed for z-index context if search has high z-index
