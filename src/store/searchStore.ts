@@ -95,8 +95,8 @@ const useSearchStore = create<SearchState>((set, get) => ({
 
     // If no cell is active, find the first empty cell
     if (!targetCellId) {
-        // Find the first cell defined in the layout whose content is null in cellContents
-        const firstEmptyCell = layout.find(cell => cellContents[cell.i] === null);
+        // Find the first cell defined in the layout whose content is null OR undefined in cellContents
+        const firstEmptyCell = layout.find(cell => cellContents[cell.i] === null || cellContents[cell.i] === undefined);
         if (firstEmptyCell) {
             targetCellId = firstEmptyCell.i; // Use the cell ID (i) from the layout
             console.log(`No active cell, found first empty cell: ${targetCellId}`);
