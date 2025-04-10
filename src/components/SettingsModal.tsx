@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import useApiKeyStore from '@/store/apiKeyStore';
-import { FaTimes, FaSave, FaUndo } from 'react-icons/fa';
+import { FaTimes, FaSave, FaUndo, FaExternalLinkAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import ConfirmationModal from './ConfirmationModal';
 
@@ -148,6 +148,35 @@ const HelperText = styled.p`
     margin: 8px 0 0 0;
 `;
 
+const ApiKeyInfo = styled.div`
+    font-size: 0.8rem;
+    color: #9CA3AF;
+    margin-top: 12px;
+    padding: 10px;
+    background-color: rgba(75, 85, 99, 0.2); // Subtle background
+    border-left: 3px solid #4F46E5; // Primary color border
+    border-radius: 0 4px 4px 0;
+
+    p {
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+    }
+
+    a {
+        color: #818CF8; // Lighter primary for links
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: #A78BFA; // Lighter hover color
+            text-decoration: underline;
+        }
+    }
+`;
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { apiKey, setApiKey } = useApiKeyStore();
   const [localApiKey, setLocalApiKey] = useState(apiKey || '');
@@ -207,6 +236,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             <HelperText>
                 Needed for YouTube search and fetching channel names automatically.
             </HelperText>
+            <ApiKeyInfo>
+                <p>
+                    To get a YouTube API Key, you need to create a project in the Google Cloud Console,
+                    enable the "YouTube Data API v3", and create credentials (API Key).
+                </p>
+                <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">
+                    Go to Google Cloud Console <FaExternalLinkAlt size="0.8em" />
+                </a>
+            </ApiKeyInfo>
         </SettingsSection>
 
         {/* Reset Section */}
