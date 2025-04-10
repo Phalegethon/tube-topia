@@ -11,6 +11,7 @@ import useGridStore, { gridLayoutConfig, GridState } from '@/store/gridStore';
 import usePlayerStore, { PlayerState } from '@/store/playerStore';
 import useChannelStore from '@/store/channelStore';
 import useSearchStore, { SearchState } from '@/store/searchStore';
+import useApiKeyStore from '@/store/apiKeyStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
@@ -372,8 +373,13 @@ export default function Home() {
     };
 
     const handleInputFocus = () => {
-        if (currentSearchTerm || results.length > 0 || error) {
-            setIsSearchDropdownOpen(true);
+        if (error === 'API Key missing' && useApiKeyStore.getState().apiKey) {
+            clearResults();
+        }
+        if (currentSearchTerm || results.length > 0 || (error && error !== 'API Key missing')) {
+             setIsSearchDropdownOpen(true);
+        } else if (error === 'API Key missing' && !useApiKeyStore.getState().apiKey) {
+             setIsSearchDropdownOpen(true);
         }
     };
 
