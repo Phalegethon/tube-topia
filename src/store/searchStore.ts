@@ -1,18 +1,20 @@
 import { create } from 'zustand';
 import axios from 'axios';
-import useChannelStore, { Channel, ChannelType } from './channelStore';
+import useChannelStore, { ChannelType } from './channelStore';
 import useGridStore from './gridStore';
 import useApiKeyStore from './apiKeyStore';
 
 // YouTube API Arama Sonucu Tipi (Basitleştirilmiş)
-interface SearchResultItem {
+// Export SearchResultItem if needed elsewhere
+export interface SearchResultItem {
   id: string; // Video ID, Playlist ID, Channel ID
   title: string;
   thumbnail: string;
   kind: 'youtube#video' | 'youtube#playlist' | 'youtube#channel';
 }
 
-interface SearchState {
+// Export the SearchState interface
+export interface SearchState {
   results: SearchResultItem[];
   isLoading: boolean;
   error: string | null;

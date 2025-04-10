@@ -3,7 +3,8 @@ import { create } from 'zustand';
 // Olası YouTube kalite seviyeleri (daha fazlası eklenebilir)
 type VideoQuality = 'auto' | 'small' | 'medium' | 'large' | 'hd720' | 'hd1080' | 'highres';
 
-interface PlayerState {
+// Export the interface
+export interface PlayerState {
   targetQuality: VideoQuality;
   setTargetQuality: (quality: VideoQuality) => void;
   isGloballyMuted: boolean;

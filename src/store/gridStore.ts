@@ -7,7 +7,8 @@ interface CellContents {
   [cellId: string]: string | null; // Değer: channelId veya null
 }
 
-interface GridState {
+// Export the GridState interface
+export interface GridState {
   layout: Layout[]; // Hücrelerin konumu ve boyutu (i: 'cell-0', 'cell-1', ...)
   gridCols: number;
   activeGridItemId: string | null; // Aktif HÜCRE ID'si

@@ -7,10 +7,10 @@ import Sidebar from '@/components/Sidebar';
 import GridContainer from '@/components/GridContainer';
 import ChatSidebar from '@/components/ChatSidebar';
 import useUIStore from '@/store/uiStore';
-import useGridStore, { gridLayoutConfig } from '@/store/gridStore';
-import usePlayerStore from '@/store/playerStore';
+import useGridStore, { gridLayoutConfig, GridState } from '@/store/gridStore';
+import usePlayerStore, { PlayerState } from '@/store/playerStore';
 import useChannelStore from '@/store/channelStore';
-import useSearchStore from '@/store/searchStore';
+import useSearchStore, { SearchState } from '@/store/searchStore';
 import {
     FaBars, FaExpand, FaCompress,
     FaVolumeUp, FaVolumeMute,
@@ -289,18 +289,13 @@ export default function Home() {
         setGridCols,
         resetCurrentLayout,
         addEmptyCell,
-        cellContents,
-        activeGridItemId,
-        setActiveGridItemId,
-        setCellContent
-    } = useGridStore();
+    }: GridState = useGridStore();
     const { 
         isGloballyMuted,
         isPlayingGlobally,
         toggleGlobalMute,
         toggleGlobalPlayPause
-    } = usePlayerStore();
-    const { addChannel } = useChannelStore();
+    }: PlayerState = usePlayerStore();
     const {
         fetchResults,
         setSearchTerm,
@@ -309,7 +304,7 @@ export default function Home() {
         isLoading,
         error,
         currentSearchTerm
-    } = useSearchStore();
+    }: SearchState = useSearchStore();
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
