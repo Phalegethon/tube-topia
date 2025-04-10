@@ -493,7 +493,7 @@ export default function Home() {
                     <Sidebar />
                     <ContentWrapper>
                         <GridContainer isFullscreenActive={isFullScreen} />
-                        {/* <ChatSidebar /> */}
+                        <ChatSidebar />
                     </ContentWrapper>
                 </MainContent>
                 <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />

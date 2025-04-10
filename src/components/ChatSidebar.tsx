@@ -28,8 +28,9 @@ const SidebarHeader = styled.div`
   align-items: center;
   padding: ${({ theme }) => theme.spacing.small} ${({ theme }) => theme.spacing.medium};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  background-color: #f8f9fa;
+  background-color: ${({ theme }) => theme.colors.dangerHover};
   flex-shrink: 0;
+  color: ${({ theme }) => theme.colors.text};
 
   h4 {
     margin: 0;
