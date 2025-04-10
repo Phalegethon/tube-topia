@@ -133,24 +133,30 @@ const GridItem = ({ cellId, contentId, isDragging, isResizing }: GridItemProps) 
   }, [contentId, cellId]);
 
     useEffect(() => {
-        if (playerRef.current && playerRef.current.mute && playerRef.current.unMute) {
-            if (isGloballyMuted) {
-                playerRef.current.mute();
-            } else {
-                playerRef.current.unMute();
-            }
-        }
-    }, [isGloballyMuted, contentId]);
+      // Check if playerRef.current exists and has the required methods
+      if (playerRef.current && typeof playerRef.current.mute === 'function' && typeof playerRef.current.unMute === 'function') {
+          if (isGloballyMuted) {
+              playerRef.current.mute();
+          } else {
+              playerRef.current.unMute();
+          }
+      } else {
+          console.warn(`Player instance or methods not available for cell ${cellId} during mute/unmute effect.`);
+      }
+  }, [isGloballyMuted, contentId, cellId]);
 
     useEffect(() => {
-        if (playerRef.current && playerRef.current.playVideo && playerRef.current.pauseVideo) {
+        // Check if playerRef.current exists and has the required methods
+        if (playerRef.current && typeof playerRef.current.playVideo === 'function' && typeof playerRef.current.pauseVideo === 'function') {
             if (isPlayingGlobally) {
                 playerRef.current.playVideo();
             } else {
                 playerRef.current.pauseVideo();
             }
+        } else {
+             console.warn(`Player instance or methods not available for cell ${cellId} during play/pause effect.`);
         }
-    }, [isPlayingGlobally, contentId]);
+    }, [isPlayingGlobally, contentId, cellId]);
 
   if (contentId && channel) {
     switch (channel.type) {

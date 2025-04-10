@@ -87,12 +87,31 @@ const useSearchStore = create<SearchState>((set, get) => ({
 
   // Sonucu grid'e atama fonksiyonu
   assignResultToGrid: async (item) => {
-    const { activeGridItemId, setCellContent } = useGridStore.getState();
+    // Get necessary functions and state from gridStore
+    const { activeGridItemId, setCellContent, layout, cellContents } = useGridStore.getState(); 
     const { addChannel, channels } = useChannelStore.getState();
 
-    if (!activeGridItemId) {
-      toast.info('Please select a grid cell first by clicking on it.');
-      return;
+    let targetCellId = activeGridItemId;
+
+    // If no cell is active, find the first empty cell
+    if (!targetCellId) {
+        // Find the first cell defined in the layout whose content is null in cellContents
+        const firstEmptyCell = layout.find(cell => cellContents[cell.i] === null);
+        if (firstEmptyCell) {
+            targetCellId = firstEmptyCell.i; // Use the cell ID (i) from the layout
+            console.log(`No active cell, found first empty cell: ${targetCellId}`);
+            // Optionally activate the cell visually
+            // useGridStore.setState({ activeGridItemId: targetCellId }); // Direkt state update
+        } else {
+            toast.warn('Grid is full. Please select a cell or clear one.');
+            return; // Stop if no active cell and no empty cell found
+        }
+    }
+
+    // If still no target cell (shouldn't happen with the logic above, but as a safeguard)
+    if (!targetCellId) {
+        toast.error('Could not find a target cell to assign the content.');
+        return;
     }
 
     let channelType: ChannelType | null = null;
@@ -144,12 +163,13 @@ const useSearchStore = create<SearchState>((set, get) => ({
         return;
     }
 
-
     // Grid hücresine ata
-    console.log(`Assigning content ${extractedId} to cell ${activeGridItemId}`);
-    setCellContent(activeGridItemId, extractedId);
+    console.log(`Assigning content ${extractedId} to cell ${targetCellId}`);
+    setCellContent(targetCellId, extractedId); // Use the determined targetCellId
     // Arama sonuçlarını temizle? İsteğe bağlı.
     // get().clearResults();
+    // Dropdown'ı kapat? (Bu store içinde UI state'i yönetmek iyi değil, dropdown'da handle edilebilir)
+    // useUIStore.getState().closeSearchDropdown(); 
   },
 }));
 
