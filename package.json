@@ -1,6 +1,6 @@
 {
-  "name": "youtuber-app",
-  "version": "1.0.0",
+  "name": "tube-topia-app",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

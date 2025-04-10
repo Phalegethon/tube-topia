@@ -167,7 +167,7 @@ const ChannelList: React.FC<ChannelListProps> = ({ searchTerm = '' }) => {
                 onClick={(e) => { 
                   e.stopPropagation();
                   if (window.confirm(`Are you sure you want to remove channel: ${channel.name || channel.id}?`)) {
-                    removeChannel(channel.id);
+                  removeChannel(channel.id);
                   }
                 }}
               >
